@@ -44,3 +44,32 @@ neuronnes.
 catégorie de monstre :
 	la catégorie d'un monstre est calculé en fonction de ses attributs
 comme les rapidité, l'endurance, les armes, la force ...
+
+gestion des monstres : 
+	chacun dispose de population de monstre : batch
+	une batch contient : 
+		type d'évolution
+		parametre
+	
+	evaluation en fonction de l'arène comment garder une cohérence
+	avec les autres évaluation ??
+	mieux : on evalue et evolue que lors des testes en interne avec 
+	donc des réglages adapté et des tests en séries.
+
+	les individus auront un historique de leurs famille précis : 
+		si par exemple on tue un très fort monstre : 
+		on le multiplie pour en faire une population de 200
+		et on evolue cette population --> inceste 
+		il faut garder un trace.
+
+	le gros probleme est quand on passe d'une évaluation à une autre, d'où 
+	l'idée d'évoluer en interne sur de nombreux tests. Mais il peut etre possible
+	de faire mieux, il faut pouvoir laisser le choix à l'utilisateur 
+	de faire ce qu'il veut.
+
+lorsqu'on lance une arène, qu'elle soit d'entrainement ou de défi, on choisis
+les populations de monstres, et si on veut l'evaluation ainsi que les moments de
+renouvellements (la mort d'un monstre - bien trop rapide, la dixième mort du monstre)
+
+
+

@@ -1,5 +1,6 @@
-th.graphics : 
+th.graphics  : -- utilisateur
 
+	2D:
 	sprite et effect:
 
 	les sprites sont pour tous les objets : se sont des images ou des 
@@ -21,7 +22,7 @@ th.graphics :
 	
 	utilise le module camera
 
-camera : 
+camera : -- core
 
 	fonction est visible
 	position : x,y
@@ -31,8 +32,17 @@ camera :
 
 	place sur l'écran
 
-interface : 
+interface : --utilisateur
 	
 	dessine la camera et le reste
 
+character : --utilisateur
+	
+	spécifie toute les actions du joueur en fonction des inputs.
 
+spectator : --utilisateur
+
+arenaManager : 
+
+type : 
+	monster : 
