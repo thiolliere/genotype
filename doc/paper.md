@@ -71,5 +71,25 @@ lorsqu'on lance une arène, qu'elle soit d'entrainement ou de défi, on choisis
 les populations de monstres, et si on veut l'evaluation ainsi que les moments de
 renouvellements (la mort d'un monstre - bien trop rapide, la dixième mort du monstre)
 
+Les joueurs et les monstres sont des entités.
+Une entités peut être dirigé en direct ou de manière scripté, en fait il n'y aura
+aucune différence du point de vue des autres, les entités sont entièrement scriptable,
+et les informations entièrement partagé.
+
+en réalité il y a l'autorité qui recoit les actions des entités de chacun des partis.
+il simule les actions et renvoie aux partis les informations qu'ils doivent recevoire.
+les partis ne sont pas omniscient, chaque partis a un point de vue. il est possible à
+deux partis de partagé leurs informations par le réseaux de la manière dont ils veulent.
+Il existera peut être un moyen générique de le faire.
+
+l'apprentissage automatique neat est une proposition. les comportements pouvant être
+scripté comme bon leur semble.
+Il y aura certainement des "abus" par exemple en transformant la chose en RTS, cela n'a
+aucun impacte dans la mesure ou il s'agit de PVE - s'amuse qui voudra.
+
+il faut donc definir : 
+	* les actions possible d'une entité
+	* les informations recueillies par une entité
+	* 
 
 

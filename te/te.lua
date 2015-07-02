@@ -1,3 +1,0 @@
-te = {}
-
-require "te.audio"
