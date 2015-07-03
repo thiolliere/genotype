@@ -90,6 +90,49 @@ aucun impacte dans la mesure ou il s'agit de PVE - s'amuse qui voudra.
 il faut donc definir : 
 	* les actions possible d'une entité
 	* les informations recueillies par une entité
-	* 
 
+il faudra ensuite définir les arènes, 
+
+entité : 
+	position : x, y
+	deplacement : orientation, vitesse
+	objet 2 main : épée+bouclier : épée, etat : "rangé","dégainé","attaque" + orientation,"defence" ...
+	touché :"touché" : après avoir recu un coup est repoussé
+		"normal" 
+		"saigne"
+		...
+
+type d'objet : lance, épée+bouclier, hallebarde, arbalète, arc
+
+ce qu'à l'utilisateur : un nombre d'entité, des actions pour chacunes, et des informations
+
+chaque entité transmet des informations à une autre entité selon des conditions sur les
+deux entités.
+
+condition de distance + perception de l'informé : 
+	si distance < perceptino alors envoye toutes les informations
+
+condition de distance + perception partielle : position
+	si distance < perception partielle alors envoye de la position
+
+entité :
+	forme :
+	position : x, y
+	vitesse : x, y
+	acceleration : x, y
+	+ objet en main et information sur l'objet
+	+ etat : étourdit ... ce sont des modifications des caractéristique d'une entité
+	comme la vitesse max, ...
+
+
+pour les condition de visibilité :
+une condition standard est la perception : 
+si une entité est visible elle est rangé dans une grille,
+les entités verronts les autre entités des case des grilles suivant
+leur perception + pour toutes les entités invisible suivant leur condition de visibilité.
+
+clients envoyent au serveur : actions :
+	entité nommé truc fait cette fonction avec ces arguments
+serveur envoyent aux teams : informations.
+	entité nommé truc ici dans tel état
 
