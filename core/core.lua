@@ -1,4 +1,0 @@
-core.object = {}
-core.team = {}
-
-
