@@ -1,38 +1,31 @@
 require "enet"
+require "entity"
+HC = require "hardoncollider"
+
+function onCollision(dt, a, b, x, y)
+end
+
+function collisionStop(dt, a, b)
+end
 
 function love.load()
 	host = enet.host_create("localhost:6789")
-	peers = {}
-	newPeer = function(peer)
-		local t = {}
-		t.peer = peer
-		t.x = math.random(0,10)
-		t.y = math.random(0,10)
-		t.velocity = 0
-		t.angle = 0
-		function t:setAngle(a)
-			self.angle = a
-		end
-		function t:setVelocity(v)
-			self.velocity = v
-		end
-		peers[peer:index()] = t
-	end
+
+	collider = HC(100, onCollision, collisionStop)
+
 	initSnapshotTime = 5
 	snapshotTime = initSnapshotTime
 end
 
 function love.update()
-	print("server update")
 	-- receive event
 	local event = host:service()
 	while event do
 		if event.type == "receive" then
 			local data = event.data
 			repeat 
-				local type , func, values, truc= data:match("^(%a),([^,]*),([^;]*);(.*)$")
-				data = truc
-				print("data : "..data)
+				local type , func, values, rest= data:match("^(%a),([^,]*),([^;]*);(.*)$")
+				data = rest
 				if type == "a" then
 					if func == "sa" then
 						peers[event.peer:index()]:setAngle(tonumber(values))
