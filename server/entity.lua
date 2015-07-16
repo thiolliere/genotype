@@ -16,23 +16,40 @@ function entity.update(dt)
 	end
 end
 
+function entity.getInformation()
+	local i = ""
+	for index, ent in pairs(entity.entities) do
+		local x, y = ent:getPosition()
+		i = i..
+			","..index..
+			","..x..
+			","..y..
+			","..ent.velocity..
+			","..ent:getAngle()..
+			";"
+	end
+	return i
+end
+
 function entity.newEntity(peer)
 	local e = {}
 
+	local x = 0
+	local y = 0
+	local radius = 10
+
 	-- set attributs
 	e.peer = peer
-	e.x = 0
-	e.y = 0
 	e.velocity = 0
-	e.angle = 0
+	e.shape = collider:addCircle(x, y, radius)
 
 	-- set methods
 	function e:setAngle(angle)
-		self.angle = angle
+		self.shape:setRotation(angle)
 	end
 
 	function e:getAngle()
-		return self.angle
+		return self.shape:rotation()
 	end
 
 	function e:setVelocity(velocity)
@@ -43,13 +60,16 @@ function entity.newEntity(peer)
 		return self.velocity
 	end
 
+	function e:move(x, y)
+		self.shape:move(x, y)
+	end
+
 	function e:setPosition(x, y)
-		self.x = x
-		self.y = y
+		self.shape:moveTo(x, y)
 	end
 
 	function e:getPosition()
-		return self.x, self.y
+		return self.shape:center()
 	end
 
 	function e:setPeer(peer)
@@ -61,8 +81,14 @@ function entity.newEntity(peer)
 	end
 
 	function e:update(dt)
-		self.x = self.x + self.velocity * dt * math.cos(self.angle) 
-		self.y = self.y + self.velocity * dt * math.sin(self.angle)
+		local dx = self.velocity * dt * math.cos(self:getAngle())
+		local dy = self.velocity * dt * math.sin(self:getAngle())
+		e.shape:move(dx, dy)
+	end
+
+	function e:destroy()
+		collider:remove(self.shape)
+		entity.entities[self.peer:index()] = nil
 	end
 
 	-- insert entity into structures

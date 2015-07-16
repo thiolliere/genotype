@@ -13,12 +13,13 @@ function love.load()
 	addState(gameState, "game")
 	addState(menuState, "menu")
 
+	love.keyboard.setKeyRepeat(false)
+
 	host = enet.host_create()
 	server = host:connect("localhost:6789")
 end
 
 function love.update()
-	print("client update")
 	lovebird.update()
 	lovelyMoon.update()
 
@@ -41,7 +42,9 @@ function love.keypressed(key, isrepeat)
 	if key == "escape" then
 		love.event.quit()
 	elseif key == "up" then
+		server:send("a,sa,"..tostring(-math.pi/2)..";a,sv,1;")
 	elseif key == "down" then
+		server:send("a,sa,"..tostring(math.pi/2)..";a,sv,1;")
 	elseif key == "right" then
 		server:send("a,sa,"..tostring(0)..";a,sv,1;")
 	elseif key == "left" then
@@ -53,7 +56,9 @@ end
 
 function love.keyreleased(key, isrepeat)
 	if key == "up" then
+		server:send("a,sv,0;")
 	elseif key == "down" then
+		server:send("a,sv,0;")
 	elseif key == "right" then
 		server:send("a,sv,0;")
 	elseif key == "left" then
@@ -63,11 +68,11 @@ function love.keyreleased(key, isrepeat)
 	lovelyMoon.keyreleased(key, isrepeat)
 end
 
-function love.joystickpressed(joystick,button)
+function love.joystickpressed(joystick, button)
 	lovelyMoon.joystickpressed(joystick, button)
 end
 
-function love.joystickreleased(joystick,button)
+function love.joystickreleased(joystick, button)
 	lovelyMoon.joystickreleased(joystick, button)
 end
 
