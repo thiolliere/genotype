@@ -2,4 +2,4 @@
 
 love server &
 love client
-pkill love
+pkill -9 love

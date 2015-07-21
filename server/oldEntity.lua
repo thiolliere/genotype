@@ -1,16 +1,26 @@
 entity = {}
 
+entity.entities= {}
+
+function entity.getEntity(index)
+	return entity.entities[index]
+end
+
+function entity.getEntities()
+	return entity.entities
+end
+
 function entity.update(dt)
-	for _,ent in ipairs(entity) do
+	for _,ent in pairs(entity.entities) do
 		ent:update(dt)
 	end
 end
 
 function entity.getInformation()
 	local i = ""
-	for index, ent in ipairs(entity) do
+	for index, ent in pairs(entity.entities) do
 		local x, y = ent:getPosition()
-		i = "e"..
+		i = i..
 			","..index..
 			","..x..
 			","..y..
@@ -38,10 +48,6 @@ function entity.newEntity(peer)
 		self.shape:setRotation(angle)
 	end
 
-	function e:moveAngle(angle)
-		local a = self.shape:getRotation()
-		self.shape:setRotation(a + angle)
-	end
 	function e:getAngle()
 		return self.shape:rotation()
 	end
@@ -82,9 +88,9 @@ function entity.newEntity(peer)
 
 	function e:destroy()
 		collider:remove(self.shape)
-		entity[self.peer:index()] = nil
+		entity.entities[self.peer:index()] = nil
 	end
 
 	-- insert entity into structures
-	entity[peer:index()] = e
+	entity.entities[peer:index()] = e
 end

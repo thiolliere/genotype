@@ -1,17 +1,27 @@
 require "enet"
-require "utils"
-require "state"
+require "entity"
+HC = require "HardonCollider"
 
 function love.load()
 	host = enet.host_create("localhost:6789")
 
+	collider = HC(100, onCollision, collisionStop)
+
 	rate = 15
-	halfMaxLatency = 150
 
-	local numberOfState = 10
+	lastAction = {}
 
-	state.load(numberOfState)
-	action.load(numberOfState)
+	local iterator = 0
+	doSnapshot = function()
+		iterator = iterator - 1
+		if iterator <= 0 then
+			iterator = 0
+			return true
+		else
+			return false
+		end
+	end
+
 end
 
 function love.run()
@@ -32,75 +42,93 @@ function love.run()
 	-- Main loop time.
 	while not quit do
 		-- the time the frame begin
-		local frameTime = love.timer.getTime()
-
-		-- recompute states
-		for i = #state, action.oldest or 1, -1 do
-			state[i] = state[i-1]
-		end
---		--state[action.oldest] = update(action.oldest)
---		for i = action.oldest -1  or 1, 1, -1 do
---			-- state[i] = statstate.update(i+1)
---		end
-
-		-- send states to clients
-		local p = host:peer_count()
-		if p ~= 0 then
-			for i = 1, p do
-				local peer = host:get_peer(i)
-				local ping = peer:round_trip_time()
-				local stateIndex = state.indexOfPing(ping)
-				local lastAction = action.lastAction[peer:index()]
-				local delta = math.floor(frameTime*100 - (index-1)*rate - lastAction.time*100) -- delta between last action and the time of the state in ms
-
-				local snapshotCode = state.code(stateIndex)..action.codeFrom(stateIndex-1)..string.2char(delta)..string.char(lastAction.id)
-
-				peer:send(snapshotCode)
-			end
-		end
-
-		-- shift actions
-		for i = #action, 2, -1 do
-			action[i] = action[i - 1]
-		end
-		action[1] = {}
-		action.oldest = 1
+		local frameBeginTime = love.timer.getTime()
 
 		-- receive actions
-		repeat
-			local event = host:service((love.timer.getTime() - frameTime) * 100 - 1)
-			if event.type == "receive" then
-
-				if event.data:len() > 1 then
-					local id = event.data:byte(1)
-					local peerAction = event.data:sub(2)
-					local peer = event.peer
-					local ping = peer:round_trip_time()
-					local actionIndex = action.indexOfAnteriority(ping/2)
-
-					action.lastAction[peer:index()] = {time = love.timer.getTime(), id = id}
-
-					if actionIndex > action.oldest then
-						action.oldest = actionIndex
-					end
-
-					if action.isValid(event.peer, data) then
-						table.insert(action[actionIndex], peerAction)
-					end
-				end
-
-			elseif event.type == "connect" then
-
-				print(event.peer:index().." connected")
-
-			elseif event.type == "disconnect" then
-
-				print(event.peer:index().." disconnected")
-
+		do 
+			for _,act in ipairs(lastAction) do
+				act.delta = act.delta + 1
 			end
 
-		until love.timer.getTime() - frameTime >= 0.014
-		love.timer.sleep(rate/100 - (love.timer.getTime() - frameTime))
+			local event = host:service()
+			while event do
+				if event.type == "receive" then
+
+					local data = event.data
+					print("server receive : "..data)
+					local packetType, rest = data:match("^(%a)(.*)$")
+					data = rest
+					if packetType == "a" then
+						local id, rest= data:match("^([^;]*);(.*)$")
+						data = rest
+						lastAction[event.peer:index()] = {id = id, delta = 0}
+						while data ~= "" do
+							local func, values, rest= data:match("^([^,]*),([^;]*);(.*)$")
+							data = rest
+							if func == "sa" then
+								entity[event.peer:index()]:setAngle(tonumber(values))
+							elseif func == "ma" then
+								entity[event.peer:index()]:moveAngle(tonumber(values))
+							elseif func == "sv" then
+								entity[event.peer:index()]:setVelocity(tonumber(values))
+							end
+						end
+					end
+
+				elseif event.type == "connect" then
+
+					local index = event.peer:index()
+					print(index.." connected")
+					entity.newEntity(event.peer)
+					lastAction[index] = {id = 0, delta = 0}
+
+				elseif event.type == "disconnect" then
+
+					local index = event.peer:index()
+					print(index.." disconnected")
+					entity[index]:destroy()
+					lastAction[index] = nil
+
+				end
+
+				event = host:service()
+
+			end
+		end
+
+		entity.update(rate/100)
+		collider:update(rate/100)
+
+		-- send snapshot
+		do
+			if doSnapshot() then
+				local entityInfo = entity.getInformation()
+				local p = host:peer_count()
+				for i = 1, p do
+					local peer = host:get_peer(i)
+					if peer:state() == "connected" then
+						delta = lastAction[i].delta
+						id = lastAction[i].id
+						local snapshot = ""..
+						"d,"..delta..";"..
+						"i,"..id..";"..
+						entityInfo
+
+						peer:send(snapshot)
+					end
+				end
+			end
+		end
+
+		-- static rate
+		do 
+			local time = rate/100 - (love.timer.getTime() - frameBeginTime)
+			if time < 0 then
+				print("!! server rate exceeded !!")
+			else
+				love.timer.sleep(rate/100 - (love.timer.getTime() - frameBeginTime))
+			end
+		end
 
 	end
 

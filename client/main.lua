@@ -2,53 +2,157 @@
 require "lib.stateManager"
 require "lib.lovelyMoon"
 lovebird = require "lib.lovebird"
+HC = require "HardonCollider"
 
 require "enet"
+require "entity"
+require "action"
+action.newIndex()
 
 -- state
 require "state.gameState"
 require "state.menuState"
 
+function love.run()
+ 
+	if love.math then
+		love.math.setRandomSeed(os.time())
+		for i=1,3 do love.math.random() end
+	end
+ 
+	if love.event then
+		love.event.pump()
+	end
+ 
+	if love.load then love.load(arg) end
+ 
+	-- We don't want the first frame's dt to include time taken by love.load.
+	if love.timer then love.timer.step() end
+ 
+	local dt = 0
+ 
+	-- Main loop time.
+	while true do
+		-- the time the frame begin
+		local frameBeginTime = love.timer.getTime()
+
+		action.newIndex()
+
+		-- Process events.
+		if love.event then
+			love.event.pump()
+			for e,a,b,c,d in love.event.poll() do
+				if e == "quit" then
+					if not love.quit or not love.quit() then
+						if love.audio then
+							love.audio.stop()
+						end
+						return
+					end
+				end
+				love.handlers[e](a,b,c,d)
+			end
+		end
+
+		-- send action
+		action.send()
+
+		-- compute world	
+		do 
+			local event = host:service()
+			while event do
+				if event.type == "receive" then
+					local delta, id = false, false
+					local data = event.data
+					print("client receive : "..data)
+					while data ~= "" do
+						local type, info, rest = data:match("^([^,]*),([^;]*);(.*)$")
+						data = rest
+
+						if type == "d" then
+							delta = tonumber(info)
+							action.last.delta = delta
+						elseif type == "i" then
+							id = tonumber(id)
+							action.last.id = id 
+						elseif type == "e" then
+							local pattern = "^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)$"
+							local index,x,y,velocity,angle = info:match(pattern)
+							index = tonumber(index)
+							x = tonumber(x)
+							y = tonumber(y)
+							velocity = tonumber(velocity)
+							angle = tonumber(angle)
+
+							entity.solveDelta(index,x,y,velocity,angle)
+						end
+					end
+					-- delete action already taken by last snapshot
+					if delta and id then
+						action.cut()
+					end
+				elseif event.type == "connect" then
+				elseif event.type == "disconnect" then
+				end
+				event = host:service()
+			end
+		end
+
+		-- Call update and draw
+		if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
+ 
+		if love.window and love.graphics and love.window.isCreated() then
+			love.graphics.clear()
+			love.graphics.origin()
+			if love.draw then love.draw() end
+			love.graphics.present()
+		end
+ 
+		-- static rate
+		love.timer.sleep(rate/100 - (love.timer.getTime() - frameBeginTime))
+	end
+ 
+end
 function love.load()
 	addState(gameState, "game")
 	addState(menuState, "menu")
 
 	love.keyboard.setKeyRepeat(false)
+	collider = HC(100, onCollision, collisionStop)
 
 	host = enet.host_create()
 	server = host:connect("localhost:6789")
+
+	rate = 15
 end
 
 function love.update()
 	lovebird.update()
 	lovelyMoon.update()
-
-	local event = host:service()
-	while event do
-		if event.type == "receive" then
-			print("client got message : ", event.data)
-		elseif event.type == "connect" then
-		elseif event.type == "disconnect" then
-		end
-		event = host:service()
-	end
 end
 
 function love.draw()
 	lovelyMoon.draw()
+
+	for _,ent in ipairs(entity) do
+		if ent then
+			love.graphics.setColor(255,21,45)
+			ent:draw("fill")
+		end
+	end
 end
 
 function love.keypressed(key, isrepeat)
 	if key == "escape" then
 		love.event.quit()
 	elseif key == "up" then
-		server:send("a,sa,"..tostring(-math.pi/2)..";a,sv,1;")
+		action.newAction("sa,"..tostring(-math.pi/2)..";sv,100;")
 	elseif key == "down" then
-		server:send("a,sa,"..tostring(math.pi/2)..";a,sv,1;")
+		action.newAction("sa,"..tostring(math.pi/2)..";sv,100;")
 	elseif key == "right" then
-		server:send("a,sa,"..tostring(0)..";a,sv,1;")
+		action.newAction("sa,"..tostring(0)..";sv,100;")
 	elseif key == "left" then
-		server:send("a,sa,"..math.pi..";a,sv,1;")
+		action.newAction("sa,"..math.pi..";sv,100;")
 	end
 
 	lovelyMoon.keypressed(key, isrepeat)
@@ -56,13 +160,13 @@ end
 
 function love.keyreleased(key, isrepeat)
 	if key == "up" then
-		server:send("a,sv,0;")
+		action.newAction("sv,0;")
 	elseif key == "down" then
-		server:send("a,sv,0;")
+		action.newAction("sv,0;")
 	elseif key == "right" then
-		server:send("a,sv,0;")
+		action.newAction("sv,0;")
 	elseif key == "left" then
-		server:send("a,sv,0;")
+		action.newAction("sv,0;")
 	end
 
 	lovelyMoon.keyreleased(key, isrepeat)

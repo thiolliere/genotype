@@ -8,7 +8,16 @@ function state.load(cardinal)
 	end
 end
 
-function state.update(id)
+function state.updateOldest(id)
+	local newState = state.duplicate(id)
+	state.updateFrom(state[id],newState)
+	state[id] = newState
+end
+
+function state.duplicate(id)
+	local newState = {}
+end
+function state.updateFrom(prev, curr)
 	-- do action of the state
 	for _,data in ipairs(action[id]) do
 		action.decode(state[id], data)
@@ -17,7 +26,11 @@ function state.update(id)
 	state.entity
 	-- update the entities
 	-- update the collision
-	
+end
+
+
+function state.update(id)
+	state.updateFrom(state[id+1], state[id])
 end
 
 function state.code(id)

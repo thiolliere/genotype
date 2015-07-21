@@ -11,17 +11,18 @@ function entity.getInformation()
 	for index, ent in ipairs(entity) do
 		local x, y = ent:getPosition()
 		i = "e"..
-			","..index..
-			","..x..
-			","..y..
-			","..ent.velocity..
-			","..ent:getAngle()..
-			";"
+		","..index..
+		","..x..
+		","..y..
+		","..ent.velocity..
+		","..ent:getAngle()..
+		";"
 	end
 	return i
 end
 
 function entity.newEntity(peer)
+	print("client create entity")
 	local e = {}
 
 	local x = 0
@@ -82,9 +83,40 @@ function entity.newEntity(peer)
 
 	function e:destroy()
 		collider:remove(self.shape)
-		entity[self.peer:index()] = nil
+		entity[self.peer:index()] = false
+	end
+
+	function e:getInformation()
+		local x,y = self:getPosition()
+		local v = self:getVelocity()
+		local a = self:getAngle()
+		return x,y,v,a
+	end
+
+	function e:draw()
+		e.shape:draw()
 	end
 
 	-- insert entity into structures
 	entity[peer:index()] = e
+end
+
+function entity.solveDelta(index,x,y,v,a)
+	if not entity[index] then
+		local peer = {}
+		function peer:index() 
+			return index
+		end
+		entity.newEntity(peer)
+	end
+	local px,py,pv,pa = entity[index]:getInformation()
+	if px ~= x or py ~= y then
+		entity[index]:setPosition(x,y)
+	end
+	if pv ~= v then
+		entity[index]:setVelocity(v)
+	end
+	if pa ~= a then
+		entity[index]:setAngle(a)
+	end
 end
