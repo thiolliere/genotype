@@ -2,9 +2,11 @@ action = {}
 
 action.index = 0
 action.last = {
-	id = 1,
+	index = 1,
 	delta = 0,
 }
+
+action.begin = 1
 
 function action.newIndex()
 	action.index = action.index + 1
@@ -15,14 +17,9 @@ function action.newIndex()
 end
 
 function action.cut()
-	local i = 1
-	while action[i].index ~= action.last.index+1 do
+	while action[1].index <= action.last.index do
 		table.remove(action,1)
 	end
-
---	for i = 1, action.last.delta do
---		table.remove(action,1)
---	end
 end
 
 function action.send()

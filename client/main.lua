@@ -7,7 +7,7 @@ HC = require "HardonCollider"
 require "enet"
 require "entity"
 require "action"
-action.newIndex()
+require "predict"
 
 -- state
 require "state.gameState"
@@ -57,7 +57,7 @@ function love.run()
 		-- send action
 		action.send()
 
-		-- compute world	
+		-- update information from snapshot if any
 		do 
 			local event = host:service()
 			while event do
@@ -72,9 +72,11 @@ function love.run()
 						if type == "d" then
 							delta = tonumber(info)
 							action.last.delta = delta
+							predict.last.delta = delta
 						elseif type == "i" then
-							id = tonumber(id)
-							action.last.id = id 
+							index = tonumber(info)
+							action.last.index = index 
+							predict.last.index = index
 						elseif type == "e" then
 							local pattern = "^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)$"
 							local index,x,y,velocity,angle = info:match(pattern)
@@ -84,13 +86,27 @@ function love.run()
 							velocity = tonumber(velocity)
 							angle = tonumber(angle)
 
-							entity.solveDelta(index,x,y,velocity,angle)
+							if not predict.isPredicted(index) then
+								entity.solveDelta(index,x,y,velocity,angle)
+							else
+								predict.last = {
+									index = index, 
+									x = x, 
+									y = y, 
+									velocity = velocity, 
+									angle = angle}
+							end
 						end
 					end
+					assert(delta, id)
 					-- delete action already taken by last snapshot
-					if delta and id then
-						action.cut()
+					action.cut()
+					-- delete state stored already taken by last snapshot
+					predict.cut()
+					if predict.diff() then
+						predict.reconciliate()
 					end
+
 				elseif event.type == "connect" then
 				elseif event.type == "disconnect" then
 				end
@@ -98,9 +114,9 @@ function love.run()
 			end
 		end
 
-		-- Call update and draw
-		if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
- 
+		-- update prediction
+		predict.predict()
+		
 		if love.window and love.graphics and love.window.isCreated() then
 			love.graphics.clear()
 			love.graphics.origin()
@@ -109,7 +125,7 @@ function love.run()
 		end
  
 		-- static rate
-		love.timer.sleep(rate/100 - (love.timer.getTime() - frameBeginTime))
+		love.timer.sleep(rate/1000 - (love.timer.getTime() - frameBeginTime))
 	end
  
 end
@@ -122,6 +138,13 @@ function love.load()
 
 	host = enet.host_create()
 	server = host:connect("localhost:6789")
+	assert(host:service(10000).data == 0)
+	event = host:service(10000)
+	print("client first receive: "..event.data)
+	assert(event.type == "receive")
+	local index, entityInfo = event.data:match("^([^;]*);(.*)$")
+	predict.index = tonumber(index)
+	entity.initEntity(entityInfo)
 
 	rate = 15
 end

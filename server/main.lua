@@ -78,9 +78,10 @@ function love.run()
 				elseif event.type == "connect" then
 
 					local index = event.peer:index()
-					print(index.." connected")
+					print("server : peer number "..index.." connected")
 					entity.newEntity(event.peer)
 					lastAction[index] = {id = 0, delta = 0}
+					event.peer:send(index..";"..entity.getInformation())
 
 				elseif event.type == "disconnect" then
 
@@ -96,8 +97,8 @@ function love.run()
 			end
 		end
 
-		entity.update(rate/100)
-		collider:update(rate/100)
+		entity.update(rate/1000)
+		collider:update(rate/1000)
 
 		-- send snapshot
 		do
@@ -122,11 +123,11 @@ function love.run()
 
 		-- static rate
 		do 
-			local time = rate/100 - (love.timer.getTime() - frameBeginTime)
+			local time = rate/1000 - (love.timer.getTime() - frameBeginTime)
 			if time < 0 then
 				print("!! server rate exceeded !!")
 			else
-				love.timer.sleep(rate/100 - (love.timer.getTime() - frameBeginTime))
+				love.timer.sleep(rate/1000 - (love.timer.getTime() - frameBeginTime))
 			end
 		end
 

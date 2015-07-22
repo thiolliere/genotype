@@ -21,23 +21,25 @@ function entity.getInformation()
 	return i
 end
 
-function entity.newEntity(peer)
+function entity.newEntity(index,x,y,velocity,angle)
 	print("client create entity")
 	local e = {}
 
-	local x = 0
-	local y = 0
+	local x = x or 0
+	local y = y or 0
 	local radius = 10
 
 	-- set attributs
-	e.peer = peer
-	e.velocity = 0
+	e.index = index
+	e.velocity = velocity or 0
 	e.shape = collider:addCircle(x, y, radius)
 
 	-- set methods
 	function e:setAngle(angle)
 		self.shape:setRotation(angle)
 	end
+
+	if angle then e:setAngle(angle) end
 
 	function e:moveAngle(angle)
 		local a = self.shape:getRotation()
@@ -98,16 +100,12 @@ function entity.newEntity(peer)
 	end
 
 	-- insert entity into structures
-	entity[peer:index()] = e
+	entity[index] = e
 end
 
 function entity.solveDelta(index,x,y,v,a)
 	if not entity[index] then
-		local peer = {}
-		function peer:index() 
-			return index
-		end
-		entity.newEntity(peer)
+		entity.newEntity(index)
 	end
 	local px,py,pv,pa = entity[index]:getInformation()
 	if px ~= x or py ~= y then
@@ -118,5 +116,23 @@ function entity.solveDelta(index,x,y,v,a)
 	end
 	if pa ~= a then
 		entity[index]:setAngle(a)
+	end
+end
+
+function entity.initEntity(entityInfo)
+	local data = entityInfo
+	while data ~= "" do
+		local pattern = "^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^;]*);(.*)$"
+		local type,index,x,y,velocity,angle, rest = data:match(pattern)
+		assert(type == "e")
+		data = rest
+
+		index = tonumber(index)
+		x = tonumber(x)
+		y = tonumber(y)
+		velocity = tonumber(velocity)
+		angle = tonumber(angle)
+
+		entity.newEntity(index,x,y,velocity,angle)
 	end
 end
