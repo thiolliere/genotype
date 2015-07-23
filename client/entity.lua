@@ -22,7 +22,7 @@ function entity.getInformation()
 end
 
 function entity.newEntity(index,x,y,velocity,angle)
-	print("client create entity")
+	print("client create entity",index)
 	local e = {}
 
 	local x = x or 0
@@ -68,13 +68,15 @@ function entity.newEntity(index,x,y,velocity,angle)
 	function e:getPosition()
 		return self.shape:center()
 	end
-
-	function e:setPeer(peer)
-		self.peer = peer
+	
+	function e:getX()
+		local x = self.shape:center()
+		return x
 	end
 
-	function e:getPeer()
-		return e.peer
+	function e:getY()
+		local _,y = self.shape:center()
+		return y
 	end
 
 	function e:update(dt)
@@ -85,7 +87,7 @@ function entity.newEntity(index,x,y,velocity,angle)
 
 	function e:destroy()
 		collider:remove(self.shape)
-		entity[self.peer:index()] = false
+		entity[self.index] = false
 	end
 
 	function e:getInformation()
@@ -101,6 +103,7 @@ function entity.newEntity(index,x,y,velocity,angle)
 
 	-- insert entity into structures
 	entity[index] = e
+
 end
 
 function entity.solveDelta(index,x,y,v,a)

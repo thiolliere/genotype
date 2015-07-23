@@ -249,61 +249,97 @@ function love.draw()
 	love.graphics.print("exces ratio : "..exceeded/(exceeded+nonexceeded).."\nexces : "..exceeded.."\ndiff ratio : "..diff/(diff + nondiff).."\ndiff : "..diff.."\nping : "..server:round_trip_time().."\nlastping : "..server:last_round_trip_time())
 end
 
-function userAction()
-	local v = 300
-	if love.keyboard.isDown("up") then
-		if love.keyboard.isDown("right") then
-			local a = -math.pi/4
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
-		elseif love.keyboard.isDown("left") then
-			local a = -math.pi*3/4
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
-		else
-			local a = -math.pi/2
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
+if arg[2] and arg[2] == "bot" then
+	timeToChange = 0
+	function userAction()
+		local reposition = 0.3
+		local v = 300
+		local x = entity[predict.index]:getX()
+		local y = entity[predict.index]:getY()
+		local w = love.window.getWidth()
+		local h = love.window.getHeight()
+
+		if entity[predict.index].velocity == 0 then
+			action.newAction("sv,"..v..";")
 		end
-	elseif love.keyboard.isDown("down") then
-		if love.keyboard.isDown("right") then
-			local a = math.pi/4
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
-		elseif love.keyboard.isDown("left") then
-			local a = math.pi*3/4
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
-		else
-			local a = math.pi/2
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
+		if entity[predict.index].x then
+			print(w,entity[predict.index].x)
 		end
-	elseif love.keyboard.isDown("right") then
+		if x > w then
+			timeToChange = love.timer.getTime() + reposition
+			action.newAction("sa,"..tostring(math.pi)..";")
+		elseif x < 0 then
+			timeToChange = love.timer.getTime() + reposition
+			action.newAction("sa,"..tostring(0)..";")
+		elseif y > h then
+			timeToChange = love.timer.getTime() + reposition
+			action.newAction("sa,"..tostring(-math.pi/2)..";")
+		elseif y < 0 then
+			timeToChange = love.timer.getTime() + reposition
+			action.newAction("sa,"..tostring(math.pi/2)..";")
+		elseif love.timer.getTime() > timeToChange then
+			local a = math.random(1,314)/100
+			action.newAction("sa,"..tostring(a)..";")
+			timeToChange = love.timer.getTime() + math.random(0.2,2)
+		end
+	end
+
+else
+	function userAction()
+		local v = 300
+		if love.keyboard.isDown("up") then
+			if love.keyboard.isDown("right") then
+				local a = -math.pi/4
+				if entity[predict.index]:getAngle() ~= a then
+					action.newAction("sa,"..tostring(a)..";")
+				end
+				if entity[predict.index]:getVelocity() ~= v then
+					action.newAction("sv,"..v..";")
+				end
+			elseif love.keyboard.isDown("left") then
+				local a = -math.pi*3/4
+				if entity[predict.index]:getAngle() ~= a then
+					action.newAction("sa,"..tostring(a)..";")
+				end
+				if entity[predict.index]:getVelocity() ~= v then
+					action.newAction("sv,"..v..";")
+				end
+			else
+				local a = -math.pi/2
+				if entity[predict.index]:getAngle() ~= a then
+					action.newAction("sa,"..tostring(a)..";")
+				end
+				if entity[predict.index]:getVelocity() ~= v then
+					action.newAction("sv,"..v..";")
+				end
+			end
+		elseif love.keyboard.isDown("down") then
+			if love.keyboard.isDown("right") then
+				local a = math.pi/4
+				if entity[predict.index]:getAngle() ~= a then
+					action.newAction("sa,"..tostring(a)..";")
+				end
+				if entity[predict.index]:getVelocity() ~= v then
+					action.newAction("sv,"..v..";")
+				end
+			elseif love.keyboard.isDown("left") then
+				local a = math.pi*3/4
+				if entity[predict.index]:getAngle() ~= a then
+					action.newAction("sa,"..tostring(a)..";")
+				end
+				if entity[predict.index]:getVelocity() ~= v then
+					action.newAction("sv,"..v..";")
+				end
+			else
+				local a = math.pi/2
+				if entity[predict.index]:getAngle() ~= a then
+					action.newAction("sa,"..tostring(a)..";")
+				end
+				if entity[predict.index]:getVelocity() ~= v then
+					action.newAction("sv,"..v..";")
+				end
+			end
+		elseif love.keyboard.isDown("right") then
 			local a = 0
 			if entity[predict.index]:getAngle() ~= a then
 				action.newAction("sa,"..tostring(a)..";")
@@ -311,7 +347,7 @@ function userAction()
 			if entity[predict.index]:getVelocity() ~= v then
 				action.newAction("sv,"..v..";")
 			end
-	elseif love.keyboard.isDown("left") then
+		elseif love.keyboard.isDown("left") then
 			local a = math.pi
 			if entity[predict.index]:getAngle() ~= a then
 				action.newAction("sa,"..tostring(a)..";")
@@ -319,10 +355,11 @@ function userAction()
 			if entity[predict.index]:getVelocity() ~= v then
 				action.newAction("sv,"..v..";")
 			end
-	else
+		else
 			if entity[predict.index]:getVelocity() ~= 0 then
 				action.newAction("sv,0;")
 			end
+		end
 	end
 end
 
@@ -330,7 +367,9 @@ function love.keypressed(key, isrepeat)
 	if key == "escape" then
 		server:disconnect()
 		while server:state() ~= "disconnected" do
+			print(server:state())
 			love.timer.sleep(0.1)
+			host:service()
 		end
 		love.event.quit()
 	end

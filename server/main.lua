@@ -86,7 +86,7 @@ function love.run()
 				elseif event.type == "disconnect" then
 
 					local index = event.peer:index()
-					print(index.." disconnected")
+					print("server : "..index.." disconnected")
 					entity[index]:destroy()
 					lastAction[index] = nil
 
