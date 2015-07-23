@@ -6,8 +6,6 @@ action.last = {
 	delta = 0,
 }
 
-action.begin = 1
-
 function action.newIndex()
 	action.index = action.index + 1
 	action[#action + 1] = {
@@ -18,6 +16,7 @@ end
 
 function action.cut()
 	while action[1].index <= action.last.index do
+		print("cut")
 		table.remove(action,1)
 	end
 end
@@ -31,3 +30,9 @@ end
 function action.newAction(string)
 	action[#action].code = action[#action].code..string
 end
+
+-- number of frame between the last snapshot and the current frame
+function action.getDeltaSnapFrame()
+	return #action - action.last.delta
+end
+

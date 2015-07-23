@@ -3,6 +3,7 @@ predict = {}
 predict.last = {}
 
 predict.index = nil
+predict.authority = nil
 
 function predict.isPredicted(index)
 	if predict.index == index then
@@ -12,17 +13,11 @@ function predict.isPredicted(index)
 	end
 end
 
-function predict.cut()
-	while predict[1] <= predict.last.index do
-		table.remove(predict,1)
-	end
-end
-
 function predict.diff()
-	local predicted = predict[1+predict.last.delta]
-	if not predicted then return true end
+	local predicted = predict[1]
+	if not predicted then return false end
 
-	local auth = predic.last
+	local auth = predict.authority
 
 	for i,v in pairs(predicted) do
 		if auth[i] ~= v then return true end
@@ -30,10 +25,50 @@ function predict.diff()
 	return false
 end
 
+function predict.cut()
+	for i = 1, #predict - action.getDeltaSnapFrame() do
+		table.remove(predict,1)
+	end
+end
+
 function predict.reconciliate()
 	-- reset the last prediction from the last authority state
 	-- it doesn't predict the frame with the action of the frame
+	-- but reestimate the last prediction
+	
+	local auth = predict.authority
+	entity.solveDelta(predict.index,auth.x,auth.y,auth.velocity,auth.angle)
+	for _,_ in ipairs(predict) do
+		table.remove(predict,1)
+	end
+	local delta = action.last.delta
+	for i = 1, action.getDeltaSnapFrame() do
+		print("predict i :"..i)
+		predict.predict(action[i+delta].code)
+	end
 end
 
-function predict.predict()
+function predict.predict(actionCode)
+	-- apply action
+	local data = actionCode
+	while data ~= "" do
+		local func, values, rest= data:match("^([^,]*),([^;]*);(.*)$")
+		data = rest
+		if func == "sa" then
+			entity[predict.index]:setAngle(tonumber(values))
+		elseif func == "ma" then
+			entity[predict.index]:moveAngle(tonumber(values))
+		elseif func == "sv" then
+			entity[predict.index]:setVelocity(tonumber(values))
+		end
+	end
+
+	-- update position
+	entity[predict.index]:update(rate/1000)
+	-- (resolve collision)
+
+	-- store prediction
+	local x,y,v,a = entity[predict.index]:getInformation()
+	predict[#predict+1] = {x=x,y=y,velocity=v,angle=a}
 end
+

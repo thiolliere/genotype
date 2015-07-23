@@ -7,7 +7,7 @@ function love.load()
 
 	collider = HC(100, onCollision, collisionStop)
 
-	rate = 15
+	rate = 20
 
 	lastAction = {}
 
@@ -15,7 +15,7 @@ function love.load()
 	doSnapshot = function()
 		iterator = iterator - 1
 		if iterator <= 0 then
-			iterator = 0
+			iterator = 4
 			return true
 		else
 			return false
@@ -127,7 +127,7 @@ function love.run()
 			if time < 0 then
 				print("!! server rate exceeded !!")
 			else
-				love.timer.sleep(rate/1000 - (love.timer.getTime() - frameBeginTime))
+				love.timer.sleep(time)
 			end
 		end
 
