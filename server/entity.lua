@@ -10,7 +10,8 @@ function entity.getInformation()
 	local i = ""
 	for index, ent in ipairs(entity) do
 		local x, y = ent:getPosition()
-		i = "e"..
+		i = i..
+			"e"..
 			","..index..
 			","..x..
 			","..y..

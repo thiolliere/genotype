@@ -22,9 +22,9 @@ function action.cut()
 end
 
 function action.send()
-	if action[#action].code ~= "" then
+--	if action[#action].code ~= "" then
 		server:send("a"..action[#action].index..";"..action[#action].code)
-	end
+--	end
 end
 
 function action.newAction(string)

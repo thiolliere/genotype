@@ -20,13 +20,17 @@ function predict.diff()
 	local auth = predict.authority
 
 	for i,v in pairs(predicted) do
-		if auth[i] ~= v then return true end
+		if math.abs(auth[i] - v)/math.abs(v) > 0.01 then 
+			print("diff : "..i.."  "..v)
+			return true 
+		end
 	end
 	return false
 end
 
 function predict.cut()
-	for i = 1, #predict - action.getDeltaSnapFrame() do
+	local p = #predict - action.getDeltaSnapFrame()
+	for i = 1, p do
 		table.remove(predict,1)
 	end
 end
@@ -38,11 +42,12 @@ function predict.reconciliate()
 	
 	local auth = predict.authority
 	entity.solveDelta(predict.index,auth.x,auth.y,auth.velocity,auth.angle)
-	for _,_ in ipairs(predict) do
+	local p = #predict
+	for i = 1, p do
 		table.remove(predict,1)
 	end
 	local delta = action.last.delta
-	for i = 1, action.getDeltaSnapFrame() do
+	for i = 1, action.getDeltaSnapFrame() - 1 do
 		print("predict i :"..i)
 		predict.predict(action[i+delta].code)
 	end

@@ -13,6 +13,31 @@ require "deb"
 require "state.gameState"
 require "state.menuState"
 
+function love.load()
+	addState(gameState, "game")
+	addState(menuState, "menu")
+
+	love.keyboard.setKeyRepeat(false)
+	collider = HC(100, onCollision, collisionStop)
+
+	host = enet.host_create()
+	server = host:connect("localhost:6789")
+	assert(host:service(10000).data == 0)
+	event = host:service(10000)
+	print("client first receive: "..event.data)
+	assert(event.type == "receive")
+	local index, entityInfo = event.data:match("^([^;]*);(.*)$")
+	predict.index = tonumber(index)
+	entity.initEntity(entityInfo)
+
+	exceeded = 0
+	nonexceeded = 0
+	diff = 0
+	nondiff = 0
+
+	rate = 20
+end
+
 function love.run()
  
 	if love.math then
@@ -56,6 +81,8 @@ function love.run()
 			end
 		end
 		deb.e("process event")
+
+		userAction()
 
 		deb.b("send action")
 		-- send action
@@ -110,9 +137,28 @@ function love.run()
 					-- remove all prediction of the state before this snapshot
 					predict.cut()
 					if predict.diff() then
-						print("prediction diff !")
+						print("-- prediction diff --")
+						diff = diff + 1
 						predict.reconciliate()
-						return
+
+--						if true then
+--							print("getdeltasnapframe = ",action.getDeltaSnapFrame())
+--							print("action : ")
+--							print("action delta=",action.last.delta," index=",action.last.index) 
+--							for i,v in ipairs(action) do
+--								print("action["..i.."]= index="..v.index.." code="..v.code)
+--							end
+--							print("prediction : ")
+--							if predict.authority then
+--								print("auth: x="..predict.authority.x.." y="..predict.authority.y.." predict.authority="..predict.authority.velocity.." a="..predict.authority.angle)
+--							end
+--							for i,v in ipairs(predict) do
+--								print("predict["..i.."]= x="..v.x.." y="..v.y.." v="..v.velocity.." a="..v.angle)
+--							end
+--							return
+--						end
+					else
+						nondiff = nondiff + 1
 					end
 
 				elseif event.type == "connect" then
@@ -185,31 +231,9 @@ function love.run()
 		end
 	end
 end
-function love.load()
-	addState(gameState, "game")
-	addState(menuState, "menu")
 
-	love.keyboard.setKeyRepeat(false)
-	collider = HC(100, onCollision, collisionStop)
-
-	host = enet.host_create()
-	server = host:connect("localhost:6789")
-	assert(host:service(10000).data == 0)
-	event = host:service(10000)
-	print("client first receive: "..event.data)
-	assert(event.type == "receive")
-	local index, entityInfo = event.data:match("^([^;]*);(.*)$")
-	predict.index = tonumber(index)
-	entity.initEntity(entityInfo)
-
-	exceeded = 0
-	nonexceeded = 0
-
-	rate = 20
-end
 
 function love.update()
-	lovebird.update()
 	lovelyMoon.update()
 end
 
@@ -222,36 +246,99 @@ function love.draw()
 			love.graphics.circle("fill",x,y,10)
 		end
 	end
-	love.graphics.print("ratio : "..exceeded/(exceeded+nonexceeded).."\nexces : "..exceeded)
+	love.graphics.print("exces ratio : "..exceeded/(exceeded+nonexceeded).."\nexces : "..exceeded.."\ndiff ratio : "..diff/(diff + nondiff).."\ndiff : "..diff.."\nping : "..server:round_trip_time().."\nlastping : "..server:last_round_trip_time())
+end
+
+function userAction()
+	local v = 300
+	if love.keyboard.isDown("up") then
+		if love.keyboard.isDown("right") then
+			local a = -math.pi/4
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+		elseif love.keyboard.isDown("left") then
+			local a = -math.pi*3/4
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+		else
+			local a = -math.pi/2
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+		end
+	elseif love.keyboard.isDown("down") then
+		if love.keyboard.isDown("right") then
+			local a = math.pi/4
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+		elseif love.keyboard.isDown("left") then
+			local a = math.pi*3/4
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+		else
+			local a = math.pi/2
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+		end
+	elseif love.keyboard.isDown("right") then
+			local a = 0
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+	elseif love.keyboard.isDown("left") then
+			local a = math.pi
+			if entity[predict.index]:getAngle() ~= a then
+				action.newAction("sa,"..tostring(a)..";")
+			end
+			if entity[predict.index]:getVelocity() ~= v then
+				action.newAction("sv,"..v..";")
+			end
+	else
+			if entity[predict.index]:getVelocity() ~= 0 then
+				action.newAction("sv,0;")
+			end
+	end
 end
 
 function love.keypressed(key, isrepeat)
 	if key == "escape" then
+		server:disconnect()
+		while server:state() ~= "disconnected" do
+			love.timer.sleep(0.1)
+		end
 		love.event.quit()
-	elseif key == "up" then
-		action.newAction("sa,"..tostring(-math.pi/2)..";sv,100;")
-	elseif key == "down" then
-		action.newAction("sa,"..tostring(math.pi/2)..";sv,100;")
-	elseif key == "right" then
-		action.newAction("sa,"..tostring(0)..";sv,100;")
-	elseif key == "left" then
-		action.newAction("sa,"..math.pi..";sv,100;")
 	end
 
 	lovelyMoon.keypressed(key, isrepeat)
 end
 
 function love.keyreleased(key, isrepeat)
-	if key == "up" then
-		action.newAction("sv,0;")
-	elseif key == "down" then
-		action.newAction("sv,0;")
-	elseif key == "right" then
-		action.newAction("sv,0;")
-	elseif key == "left" then
-		action.newAction("sv,0;")
-	end
-
 	lovelyMoon.keyreleased(key, isrepeat)
 end
 

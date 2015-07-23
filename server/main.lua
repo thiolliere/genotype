@@ -134,9 +134,6 @@ function love.run()
 	end
 
 	if not love.quit or not love.quit() then
-		if love.audio then
-			love.audio.stop()
-		end
 		return
 	end
 end
