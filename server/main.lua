@@ -11,11 +11,12 @@ function love.load()
 
 	lastAction = {}
 
+	local deltaSnapshot = 4
 	local iterator = 0
 	doSnapshot = function()
 		iterator = iterator - 1
 		if iterator <= 0 then
-			iterator = 4
+			iterator = deltaSnapshot
 			return true
 		else
 			return false
@@ -51,6 +52,9 @@ function love.run()
 			end
 
 			local event = host:service()
+			if not event then
+				print("-- server 0 action")
+			end
 			while event do
 				if event.type == "receive" then
 
@@ -93,6 +97,9 @@ function love.run()
 				end
 
 				event = host:service()
+				if event then
+					print("-- server two action")
+				end
 
 			end
 		end

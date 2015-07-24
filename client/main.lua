@@ -7,6 +7,7 @@ require "enet"
 require "entity"
 require "action"
 require "predict"
+require "interpolation"
 
 require "deb"
 -- state
@@ -26,9 +27,11 @@ function love.load()
 	event = host:service(10000)
 	print("client first receive: "..event.data)
 	assert(event.type == "receive")
-	local index, entityInfo = event.data:match("^([^;]*);(.*)$")
+	local index, snapshot= event.data:match("^([^;]*);(.*)$")
 	predict.index = tonumber(index)
-	entity.initEntity(entityInfo)
+	interpolation.newSnapshot(snapshot)
+	local auth = predict.authority
+	entity.solveDelta(predict.index,auth.x,auth.y,auth.velocity,auth.angle)
 
 	exceeded = 0
 	nonexceeded = 0
@@ -95,68 +98,33 @@ function love.run()
 			local event = host:service()
 			while event do
 				if event.type == "receive" then
-					local delta, id = false, false
-					local data = event.data
-					print("client receive : "..data)
-					while data ~= "" do
-						local type, info, rest = data:match("^([^,]*),([^;]*);(.*)$")
-						data = rest
+					print("client receive : "..event.data)
 
-						if type == "d" then
-							delta = tonumber(info)
-							action.last.delta = delta
-							predict.last.delta = delta
-						elseif type == "i" then
-							index = tonumber(info)
-							action.last.index = index 
-							predict.last.index = index
-						elseif type == "e" then
-							local pattern = "^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*)$"
-							local index,x,y,velocity,angle = info:match(pattern)
-							index = tonumber(index)
-							x = tonumber(x)
-							y = tonumber(y)
-							velocity = tonumber(velocity)
-							angle = tonumber(angle)
+					local delta, index, snap = event.data:match(
+						"^d,([^,]*);i,([^,]*);(.*)$")
 
-							if not predict.isPredicted(index) then
-								entity.solveDelta(index,x,y,velocity,angle)
-							else
-								predict.authority = {
-									x = x, 
-									y = y, 
-									velocity = velocity, 
-									angle = angle}
-							end
-						end
-					end
-					assert(delta, id)
+					delta = tonumber(delta)
+					action.last.delta = delta
+					predict.last.delta = delta
+
+					index = tonumber(index)
+					action.last.index = index 
+					predict.last.index = index
+
+
+
+					interpolation.newSnapshot(snap)
+
+
 					-- delete action already taken by last snapshot
 					action.cut()
-					-- delete state stored already taken by last snapshot
-					-- remove all prediction of the state before this snapshot
+					-- remove all prediction of the state before 
+					-- this snapshot
 					predict.cut()
 					if predict.diff() then
 						print("-- prediction diff --")
 						diff = diff + 1
 						predict.reconciliate()
-
---						if true then
---							print("getdeltasnapframe = ",action.getDeltaSnapFrame())
---							print("action : ")
---							print("action delta=",action.last.delta," index=",action.last.index) 
---							for i,v in ipairs(action) do
---								print("action["..i.."]= index="..v.index.." code="..v.code)
---							end
---							print("prediction : ")
---							if predict.authority then
---								print("auth: x="..predict.authority.x.." y="..predict.authority.y.." predict.authority="..predict.authority.velocity.." a="..predict.authority.angle)
---							end
---							for i,v in ipairs(predict) do
---								print("predict["..i.."]= x="..v.x.." y="..v.y.." v="..v.velocity.." a="..v.angle)
---							end
---							return
---						end
 					else
 						nondiff = nondiff + 1
 					end
@@ -165,6 +133,10 @@ function love.run()
 				elseif event.type == "disconnect" then
 				end
 				event = host:service()
+				if event then
+					print("-- two snapshot in a frame")
+					return
+				end
 			end
 		end
 		deb.e("receive snapshot")
@@ -175,6 +147,12 @@ function love.run()
 			predict.predict(action[#action].code)
 		end
 		deb.e("predict")
+
+		-- set entity to the interpolation
+		interpolation.index = math.min(interpolation.index + 1, #interpolation)
+		for i,v in pairs(interpolation[interpolation.index]) do
+			entity.solveDelta(i,v.x,v.y)
+		end
 		
 		deb.b("draw")
 		deb.b("condition")
@@ -229,6 +207,8 @@ function love.run()
 		for i,v in ipairs(predict) do
 			print("predict["..i.."]= x="..v.x.." y="..v.y.." v="..v.velocity.." a="..v.angle)
 		end
+		local x,y,v,a = entity[predict.index]:getInformation()
+		print("entity predicted : x="..x.." y="..y.." v="..v.." a="..a)
 	end
 end
 
@@ -278,7 +258,7 @@ if arg[2] and arg[2] == "bot" then
 			timeToChange = love.timer.getTime() + reposition
 			action.newAction("sa,"..tostring(math.pi/2)..";")
 		elseif love.timer.getTime() > timeToChange then
-			local a = math.random(1,314)/100
+			local a = math.random(1,314*2)/100
 			action.newAction("sa,"..tostring(a)..";")
 			timeToChange = love.timer.getTime() + math.random(0.2,2)
 		end

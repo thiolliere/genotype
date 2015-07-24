@@ -111,31 +111,31 @@ function entity.solveDelta(index,x,y,v,a)
 		entity.newEntity(index)
 	end
 	local px,py,pv,pa = entity[index]:getInformation()
-	if px ~= x or py ~= y then
+	if x and y and (px ~= x or py ~= y) then
 		entity[index]:setPosition(x,y)
 	end
-	if pv ~= v then
+	if v and pv ~= v then
 		entity[index]:setVelocity(v)
 	end
-	if pa ~= a then
+	if a and pa ~= a then
 		entity[index]:setAngle(a)
 	end
 end
 
-function entity.initEntity(entityInfo)
-	local data = entityInfo
-	while data ~= "" do
-		local pattern = "^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^;]*);(.*)$"
-		local type,index,x,y,velocity,angle, rest = data:match(pattern)
-		assert(type == "e")
-		data = rest
-
-		index = tonumber(index)
-		x = tonumber(x)
-		y = tonumber(y)
-		velocity = tonumber(velocity)
-		angle = tonumber(angle)
-
-		entity.newEntity(index,x,y,velocity,angle)
-	end
-end
+--function entity.initEntity(entityInfo)
+--	local data = entityInfo
+--	while data ~= "" do
+--		local pattern = "^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^;]*);(.*)$"
+--		local type,index,x,y,velocity,angle, rest = data:match(pattern)
+--		assert(type == "e")
+--		data = rest
+--
+--		index = tonumber(index)
+--		x = tonumber(x)
+--		y = tonumber(y)
+--		velocity = tonumber(velocity)
+--		angle = tonumber(angle)
+--
+--		entity.newEntity(index,x,y,velocity,angle)
+--	end
+--end
