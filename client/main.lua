@@ -1,44 +1,56 @@
 -- librairies
-require "lib.stateManager"
-require "lib.lovelyMoon"
-HC = require "HardonCollider"
-
 require "enet"
-require "entity"
-require "action"
-require "predict"
-require "interpolation"
+require "core"
+--require "entity"
+--require "action"
+--require "predict"
+--require "interpolation"
 
 require "deb"
--- state
-require "state.gameState"
-require "state.menuState"
 
 function love.load()
-	addState(gameState, "game")
-	addState(menuState, "menu")
-
 	love.keyboard.setKeyRepeat(false)
-	collider = HC(100, onCollision, collisionStop)
+
+	world.load()
 
 	host = enet.host_create()
 	server = host:connect("localhost:6789")
+
 	assert(host:service(10000).data == 0)
+
 	event = host:service(10000)
 	print("client first receive: "..event.data)
 	assert(event.type == "receive")
-	local index, snapshot= event.data:match("^([^;]*);(.*)$")
-	predict.index = tonumber(index)
-	interpolation.newSnapshot(snapshot)
-	local auth = predict.authority
-	entity.solveDelta(predict.index,auth.x,auth.y,auth.velocity,auth.angle)
 
-	exceeded = 0
-	nonexceeded = 0
-	diff = 0
-	nondiff = 0
+	
+	local index, rate, delta, cdsnap= event.data:match("^([^;]*);(.*)$")
+	local dsnap = core.snapshot.decode(cdsnap)
 
-	rate = 20
+	core.setRate(rate)
+	core.snapshot.setDelta(tonumber(delta))
+	core.prediction.setIndex(tonumber(index))
+
+	core.snapshot.completeSnap(dsnap,core.snapshot.getLast())
+	local snap = dsnap
+
+	core.prediction.setAuthority(core.snapshot.removeIndex(index, snap))
+	core.interpolation.interpolate(core.snapshot.last,dsnap)
+	core.interpolation.initCurrent()
+
+	core.prediction.reconciliate(snap)
+	
+	for i,v in pairs(core.snapshot.getObject(snap)) do
+		world.solveDelta(i,v)
+	end
+	world.solveDelta(core.prediction.getIndex(),core.prediction.getPrediction())
+
+--	interpolation.newSnapshot(snapshot)
+--	local auth = predict.authority
+--	entity.solveDelta(predict.index,auth.x,auth.y,auth.velocity,auth.angle)
+
+	user.load()
+
+--	rate = 20
 end
 
 function love.run()
@@ -67,7 +79,6 @@ function love.run()
 
 		action.newIndex()
 
-		deb.b("process event")
 		-- Process events.
 		if love.event then
 			love.event.pump()
@@ -83,143 +94,217 @@ function love.run()
 				love.handlers[e](a,b,c,d)
 			end
 		end
-		deb.e("process event")
 
-		userAction()
+		user.update()
 
-		deb.b("send action")
 		-- send action
 		action.send()
-		deb.e("send action")
 
-		-- update information from snapshot if any
-		deb.b("receive snapshot")
-		do 
-			local event = host:service()
-			while event do
-				if event.type == "receive" then
-					print("client receive : "..event.data)
-
-					local delta, index, snap = event.data:match(
-						"^d,([^,]*);i,([^,]*);(.*)$")
-
-					delta = tonumber(delta)
-					action.last.delta = delta
-					predict.last.delta = delta
-
-					index = tonumber(index)
-					action.last.index = index 
-					predict.last.index = index
-
-
-
-					interpolation.newSnapshot(snap)
-
-
-					-- delete action already taken by last snapshot
-					action.cut()
-					-- remove all prediction of the state before 
-					-- this snapshot
-					predict.cut()
-					if predict.diff() then
-						print("-- prediction diff --")
-						diff = diff + 1
-						predict.reconciliate()
-					else
-						nondiff = nondiff + 1
-					end
-
-				elseif event.type == "connect" then
-				elseif event.type == "disconnect" then
-				end
-				event = host:service()
-				if event then
-					print("-- two snapshot in a frame")
-					return
-				end
-			end
-		end
-		deb.e("receive snapshot")
-
-		deb.b("predict")
-		-- update prediction
-		if action.getDeltaSnapFrame() > 0 then
-			predict.predict(action[#action].code)
-		end
-		deb.e("predict")
-
-		-- set entity to the interpolation
-		interpolation.index = math.min(interpolation.index + 1, #interpolation)
-		for i,v in pairs(interpolation[interpolation.index]) do
-			entity.solveDelta(i,v.x,v.y)
-		end
+		-- update world
+		love.update()
+--		-- update information from snapshot if any
+--		do 
+--			local event = host:service()
+--			while event do
+--				if event.type == "receive" then
+--					print("client receive : "..event.data)
+--
+--					local delta, index, snap = event.data:match(
+--						"^d,([^,]*);i,([^,]*);(.*)$")
+--
+--					delta = tonumber(delta)
+--					action.last.delta = delta
+--					predict.last.delta = delta
+--
+--					index = tonumber(index)
+--					action.last.index = index 
+--					predict.last.index = index
+--
+--
+--
+--					interpolation.newSnapshot(snap)
+--
+--
+--					-- delete action already taken by last snapshot
+--					action.cut()
+--					-- remove all prediction of the state before 
+--					-- this snapshot
+--					predict.cut()
+--					if predict.diff() then
+--						print("-- prediction diff --")
+--						diff = diff + 1
+--						predict.reconciliate()
+--					else
+--						nondiff = nondiff + 1
+--					end
+--
+--				elseif event.type == "connect" then
+--				elseif event.type == "disconnect" then
+--				end
+--				event = host:service()
+--				if event then
+--					print("-- two snapshot in a frame")
+--					return
+--				end
+--			end
+--		end
+--		
+--		-- update prediction
+--		if action.getDeltaSnapFrame() > 0 then
+--			predict.predict(action[#action].code)
+--		end
+--		deb.e("predict")
+--
+--		-- set entity to the interpolation
+--		interpolation.index = math.min(interpolation.index + 1, #interpolation)
+--		for i,v in pairs(interpolation[interpolation.index]) do
+--			entity.solveDelta(i,v.x,v.y)
+--		end
 		
-		deb.b("draw")
-		deb.b("condition")
-		if love.window and love.graphics and love.window.isCreated() then
-			deb.e("condition")
-			deb.b("clear")
+		if love.gotTime() and love.window and love.graphics and love.window.isCreated() then
 			love.graphics.clear()
-			deb.e("clear")
-			deb.b("origin")
 			love.graphics.origin()
-			deb.e("origin")
-			deb.b("love draw")
 			if love.draw then love.draw() end
-			deb.e("love draw")
-			deb.b("present")
 			love.graphics.present()
-			deb.e("present")
 		end
-		deb.e("draw")
  
-		deb.b("sleep")
-		-- static rate
-		do 
-			local time = rate/1000 - (love.timer.getTime() - frameBeginTime)
-			if time < 0 then
-				if time < -rate/1000 then 
-					print("client 2 rate exceeded"..time)
-					exceeded = exceeded + 1
-				end
+		love.sleep()
+--		-- static rate
+--		do 
+--			local time = rate/1000 - (love.timer.getTime() - frameBeginTime)
+--			if time < 0 then
+--				if time < -rate/1000 then 
+--					print("client 2 rate exceeded"..time)
+--					exceeded = exceeded + 1
+--				end
+--
+--				print("client rate exceeded"..time)
+--				exceeded = exceeded + 1
+--
+--				love.timer.sleep(time % (rate/1000) + math.floor(time/rate*1000))
+--				return
+--			else
+--				nonexceeded = nonexceeded + 1
+--				love.timer.sleep(time)
+--			end
+--		end
+--		print("getdeltasnapframe = ",action.getDeltaSnapFrame())
+--		print("action : ")
+--		print("action delta=",action.last.delta," index=",action.last.index) 
+--		for i,v in ipairs(action) do
+--			print("action["..i.."]= index="..v.index.." code="..v.code)
+--		end
+--		print("prediction : ")
+--		if predict.authority then
+--			print("auth: x="..predict.authority.x.." y="..predict.authority.y.." predict.authority="..predict.authority.velocity.." a="..predict.authority.angle)
+--		end
+--		for i,v in ipairs(predict) do
+--			print("predict["..i.."]= x="..v.x.." y="..v.y.." v="..v.velocity.." a="..v.angle)
+--		end
+--		local x,y,v,a = entity[predict.index]:getInformation()
+--		print("entity predicted : x="..x.." y="..y.." v="..v.." a="..a)
 
-				print("client rate exceeded"..time)
-				exceeded = exceeded + 1
-
-				love.timer.sleep(time % (rate/1000) + math.floor(time/rate*1000))
-				return
-			else
-				nonexceeded = nonexceeded + 1
-				love.timer.sleep(time)
-			end
+		if love.timer then
+			love.timer.step()
+			dt = love.timer.getDelta()
 		end
-		deb.e("sleep")
-		print("getdeltasnapframe = ",action.getDeltaSnapFrame())
-		print("action : ")
-		print("action delta=",action.last.delta," index=",action.last.index) 
-		for i,v in ipairs(action) do
-			print("action["..i.."]= index="..v.index.." code="..v.code)
-		end
-		print("prediction : ")
-		if predict.authority then
-			print("auth: x="..predict.authority.x.." y="..predict.authority.y.." predict.authority="..predict.authority.velocity.." a="..predict.authority.angle)
-		end
-		for i,v in ipairs(predict) do
-			print("predict["..i.."]= x="..v.x.." y="..v.y.." v="..v.velocity.." a="..v.angle)
-		end
-		local x,y,v,a = entity[predict.index]:getInformation()
-		print("entity predicted : x="..x.." y="..y.." v="..v.." a="..a)
 	end
 end
 
 
 function love.update()
-	lovelyMoon.update()
+	-- update information from snapshot if any
+	local event = host:service()
+	if event then
+		while event do
+			if event.type == "receive" then
+				print("client receive : "..event.data)
+
+				local dsnap = core.snapshot.decode(event.data)
+			--	local delta, index, snap = event.data:match(
+			--		"^d,([^,]*);i,([^,]*);(.*)$")
+
+				local n = core.action.cutToIndex(snap:getLastAction())
+
+--				delta = tonumber(delta)
+--				action.last.delta = delta
+--				predict.last.delta = delta
+--
+--				index = tonumber(index)
+--				action.last.index = index 
+--				predict.last.index = index
+
+				core.snapshot.completeSnap(dsnap,core.snapshot.getLast())
+				local snap = dsnap
+			
+				core.prediction.setAuthority(
+					core.snapshot.removeIndex(index, snap))
+				core.interpolation.interpolate(core.snapshot.last,snap)
+				core.interpolation.initCurrent()
+			
+				core.prediction.cut(#core.prediction - #core.action)
+				if core.diff(core.prediction[1], core.prediction.getAuthority) then
+					core.prediction.reconciliate(snap)
+				else
+					core.prediction.predict()
+				end
+				
+				for i,v in pairs(core.snapshot.getObject(snap)) do
+					world.solveDelta(i,v)
+				end
+				world.solveDelta(core.prediction.getIndex(),core.prediction[#core.prediction])
+				
+----				interpolation.newSnapshot(snap)
+--
+--
+--				-- delete action already taken by last snapshot
+--				action.cut()
+--				-- remove all prediction of the state before 
+--				-- this snapshot
+--				predict.cut()
+--				if predict.diff() then
+--					print("-- prediction diff --")
+--					diff = diff + 1
+--					predict.reconciliate()
+--				else
+--					nondiff = nondiff + 1
+--				end
+
+			elseif event.type == "connect" then
+			elseif event.type == "disconnect" then
+			end
+			event = host:service()
+			if event then
+				print("-- two snapshot in a frame")
+				return
+			end
+		end
+	else
+		core.interpolation.incrementCurrent()
+		core.prediction.predict()
+
+		for i,v in pairs(core.snapshot.getObject(snap)) do
+			world.solveDelta(i,v)
+		end
+		world.solveDelta(
+			core.prediction.getIndex(),
+			core.prediction[#core.prediction])
+	end
+--		-- update prediction
+--		if action.getDeltaSnapFrame() > 0 then
+--			predict.predict(action[#action].code)
+--		end
+--		deb.e("predict")
+--
+--		-- set entity to the interpolation
+--		interpolation.index = math.min(interpolation.index + 1, #interpolation)
+--		for i,v in pairs(interpolation[interpolation.index]) do
+--			entity.solveDelta(i,v.x,v.y)
+--		end
+--
 end
 
 function love.draw()
-	lovelyMoon.draw()
-
 	for _,ent in ipairs(entity) do
 		if ent then
 			local x,y = ent:getPosition()
@@ -353,28 +438,4 @@ function love.keypressed(key, isrepeat)
 		end
 		love.event.quit()
 	end
-
-	lovelyMoon.keypressed(key, isrepeat)
 end
-
-function love.keyreleased(key, isrepeat)
-	lovelyMoon.keyreleased(key, isrepeat)
-end
-
-function love.joystickpressed(joystick, button)
-	lovelyMoon.joystickpressed(joystick, button)
-end
-
-function love.joystickreleased(joystick, button)
-	lovelyMoon.joystickreleased(joystick, button)
-end
-
-function love.mousepressed(x, y, button)
-	lovelyMoon.mousepressed(x, y, button)
-end
-
-function love.mousereleased(x, y, button)
-	lovelyMoon.mousereleased(x, y, button)
-end
-
-

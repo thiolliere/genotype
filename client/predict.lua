@@ -76,4 +76,3 @@ function predict.predict(actionCode)
 	local x,y,v,a = entity[predict.index]:getInformation()
 	predict[#predict+1] = {x=x,y=y,velocity=v,angle=a}
 end
-

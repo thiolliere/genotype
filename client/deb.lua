@@ -1,5 +1,19 @@
 deb = {}
 
+deb.compteur = {
+	exceeded = 0,
+	nonexceeded = 0,
+	diff = 0,
+	nondiff = 0,
+}
+
+function deb.i(label)
+	if not deb.compteur[label] then
+		deb.compteur[label] = 0
+	end
+	deb.compteur[label] = deb.compteur[label] + 1
+end
+
 deb.timer = {}
 
 function deb.b(label)

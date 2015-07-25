@@ -121,21 +121,3 @@ function entity.solveDelta(index,x,y,v,a)
 		entity[index]:setAngle(a)
 	end
 end
-
---function entity.initEntity(entityInfo)
---	local data = entityInfo
---	while data ~= "" do
---		local pattern = "^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^;]*);(.*)$"
---		local type,index,x,y,velocity,angle, rest = data:match(pattern)
---		assert(type == "e")
---		data = rest
---
---		index = tonumber(index)
---		x = tonumber(x)
---		y = tonumber(y)
---		velocity = tonumber(velocity)
---		angle = tonumber(angle)
---
---		entity.newEntity(index,x,y,velocity,angle)
---	end
---end
