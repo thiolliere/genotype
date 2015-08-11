@@ -1,6 +1,5 @@
 world = {}
 world.HC = require "lib.HardonCollider"
-require "hoverfly"
 
 function world.load()
 	world.collider = HC(100, onCollision, collisionStop)
@@ -19,3 +18,5 @@ function world.solveDelta(index, table)
 	end
 	world.object[index]:setAttribut(table)
 end
+
+world.hoverfly = require "hovefly"

@@ -23,21 +23,22 @@ function love.load()
 	assert(event.type == "receive")
 
 	
-	local index, rate, delta, cdsnap= event.data:match("^([^;]*);(.*)$")
+	local index, rate, delta, snap = event.data:match("^([^;]*);(.*)$")
 	local dsnap = core.snapshot.decode(cdsnap)
 
 	core.setRate(rate)
 	core.snapshot.setDelta(tonumber(delta))
 	core.prediction.setIndex(tonumber(index))
 
-	core.snapshot.completeSnap(dsnap,core.snapshot.getLast())
-	local snap = dsnap
+	core.snapshot.newSnap(snap)
+	local old, new = core.snapshot.getSnap()
 
-	core.prediction.setAuthority(core.snapshot.removeIndex(index, snap))
-	core.interpolation.interpolate(core.snapshot.last,dsnap)
-	core.interpolation.initCurrent()
+	local auth = new:removeIndex(index)
+	core.prediction.setAuthority(auth:getAttribut())
+	core.interpolation.interpolate(core.snapshot.old, core.snapshot.new)
+	core.interpolation.initCursor()
 
-	core.prediction.reconciliate(snap)
+	core.prediction.reconciliate(core.snapshot.new)
 	
 	for i,v in pairs(core.snapshot.getObject(snap)) do
 		world.solveDelta(i,v)
@@ -243,10 +244,13 @@ function love.update()
 				core.interpolation.initCurrent()
 			
 				core.prediction.cut(#core.prediction - #core.action)
-				if core.diff(core.prediction[1], core.prediction.getAuthority) then
+				if core.diff(
+					core.prediction[1], 
+					core.prediction.getAuthority) then
+
 					core.prediction.reconciliate(snap)
 				else
-					core.prediction.predict()
+					core.prediction.predict(core.action[#core.action])
 				end
 				
 				for i,v in pairs(core.snapshot.getObject(snap)) do
@@ -280,12 +284,13 @@ function love.update()
 			end
 		end
 	else
-		core.interpolation.incrementCurrent()
+		core.interpolation.incCursor()
 		core.prediction.predict()
 
 		for i,v in pairs(core.snapshot.getObject(snap)) do
 			world.solveDelta(i,v)
 		end
+
 		world.solveDelta(
 			core.prediction.getIndex(),
 			core.prediction[#core.prediction])

@@ -1,4 +1,4 @@
-hoverfly = {}
+local hoverfly = {}
 
 function hoverfly.create()
 	local h = {}
@@ -77,6 +77,10 @@ function hoverfly.create()
 		self.shape:move(dx, dy)
 	end
 
+	function h:predict(dt)
+		h:update(dt)
+	end
+
 	function h:destroy()
 		collider:remove(self.shape)
 		self:setState("0")
@@ -138,3 +142,10 @@ function hoverfly.interpolate(from, to, frac)
 	t.y = from.y*frac + to.y*(1-frac) 
 	return t
 end
+
+function hoverfly.decodeAttribut(data)
+	local att = {}
+	return att
+end
+
+return hoverfly
