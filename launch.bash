@@ -5,8 +5,8 @@ then
        	sudo tc qdisc add dev lo root netem delay 50ms 5ms distribution normal
 fi
 
-love server > slog &
-love client > clog 
+love source server > slog &
+love source > clog 
 
 if [ "$1" = "delay" ] 
 then

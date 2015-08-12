@@ -1,28 +1,5 @@
 require "enet"
-require "entity"
-HC = require "HardonCollider"
-
-function love.load()
-	host = enet.host_create("localhost:6789")
-
-	collider = HC(100, onCollision, collisionStop)
-
-	rate = 20
-
-	lastAction = {}
-
-	local deltaSnapshot = 4
-	local iterator = 0
-	doSnapshot = function()
-		iterator = iterator - 1
-		if iterator <= 0 then
-			iterator = deltaSnapshot
-			return true
-		else
-			return false
-		end
-	end
-end
+require "world"
 
 function love.run()
 
@@ -31,10 +8,26 @@ function love.run()
 		for i=1,3 do love.math.random() end
 	end
 
-	if love.load then love.load(arg) end
+	do
+		host = enet.host_create("localhost:6789")
 
-	-- We don't want the first frame's dt to include time taken by love.load.
-	if love.timer then love.timer.step() end
+		rate = 20
+
+		lastAction = {}
+
+		deltaBetweenSnapshot = 4
+		local iterator = 0
+		timeToSendSnapshot = function()
+			iterator = iterator - 1
+			if iterator <= 0 then
+				iterator = deltaBetweenSnapshot
+				return true
+			else
+				return false
+			end
+		end
+		print("server : loaded")
+	end
 
 	local dt = 0
 	local quit = false
@@ -46,14 +39,7 @@ function love.run()
 
 		-- receive actions
 		do 
-			for _,act in ipairs(lastAction) do
-				act.delta = act.delta + 1
-			end
-
 			local event = host:service()
-			if not event then
-				print("-- server 0 action")
-			end
 			while event do
 				if event.type == "receive" then
 
@@ -64,16 +50,16 @@ function love.run()
 					if packetType == "a" then
 						local id, rest= data:match("^([^;]*);(.*)$")
 						data = rest
-						lastAction[event.peer:index()] = {id = id, delta = 0}
+						lastAction[event.peer:index()] = id
 						while data ~= "" do
 							local func, values, rest= data:match("^([^,]*),([^;]*);(.*)$")
 							data = rest
 							if func == "sa" then
-								entity[event.peer:index()]:setAngle(tonumber(values))
+								world.object[event.peer:index()]:setAngle(tonumber(values))
 							elseif func == "ma" then
-								entity[event.peer:index()]:moveAngle(tonumber(values))
+								world.object[event.peer:index()]:moveAngle(tonumber(values))
 							elseif func == "sv" then
-								entity[event.peer:index()]:setVelocity(tonumber(values))
+								world.object[event.peer:index()]:setVelocity(tonumber(values))
 							end
 						end
 					end
@@ -82,46 +68,39 @@ function love.run()
 
 					local index = event.peer:index()
 					print("server : peer number "..index.." connected")
-					entity.newEntity(event.peer)
-					lastAction[index] = {id = 0, delta = 0}
-					event.peer:send(index..";"..entity.getInformation())
+					world.object[index] = world.hoverfly.create()
+					lastAction[index] = 0
+					event.peer:send(index..";"..
+		     				rate..";"..
+						deltaBetweenSnapshot..";"..
+						lastAction[index]..";"..
+						world.encodeObject())
 
 				elseif event.type == "disconnect" then
 
 					local index = event.peer:index()
 					print("server : "..index.." disconnected")
-					entity[index]:destroy()
+					world[index]:destroy()
 					lastAction[index] = nil
 
 				end
 
 				event = host:service()
-				if event then
-					print("-- server two action")
-				end
 
 			end
 		end
 
-		entity.update(rate/1000)
-		collider:update(rate/1000)
+		world.update(rate/1000)
 
 		-- send snapshot
 		do
-			if doSnapshot() then
-				local entityInfo = entity.getInformation()
+			if timeToSendSnapshot() then
+				local objectData = world.encodeObject()
 				local p = host:peer_count()
 				for i = 1, p do
 					local peer = host:get_peer(i)
 					if peer:state() == "connected" then
-						delta = lastAction[i].delta
-						id = lastAction[i].id
-						local snapshot = ""..
-						"d,"..delta..";"..
-						"i,"..id..";"..
-						entityInfo
-
-						peer:send(snapshot)
+						peer:send(core.snapshot.encodeSnap(lastAction[i],objectData))
 					end
 				end
 			end
