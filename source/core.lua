@@ -46,7 +46,7 @@ function core.snapshot.createSnap()
 
 	function snap:decode(data)
 		local lastAction,objectCode = data:match("^([^;]*);(.*)$")
-		self:setLastAction(lastAction)
+		self:setLastAction(tonumber(lastAction))
 		self:setObject(world.decodeObject(objectCode))
 	end
 
@@ -117,6 +117,10 @@ function core.prediction.setAuthority(auth)
 	core.prediction.authority = auth
 end
 
+function core.prediction.getAuthority()
+	return core.prediction.authority
+end
+
 function core.prediction.reconciliate(snap)
 	local n = #core.prediction
 	for i = 1, n do
@@ -131,13 +135,30 @@ end
 
 function core.prediction.predict(code)
 	core.action.apply(code)
-	world[core.prediction.index]:predict(core.getRate()/1000)
+	world.object[core.prediction.index]:predict(core.getRate()/1000)
 
-	core.prediction[#core.prediction+1] = world[core.prediction.index]:getAttribut()
+	core.prediction[#core.prediction+1] = world.object[core.prediction.index]:getAttribut()
 end
 
 function core.prediction.getPrediction()
 	return core.prediction[#core.prediction]
+end
+
+function core.prediction.cut(n)
+	for i = 1,n do
+		table.remove(core.prediction,1)
+	end
+end
+
+function core.prediction.diff()
+	local auth = core.prediction.getAuthority()
+	local pred = core.prediction[1]
+	for i,v in pairs(auth) do
+		if pred[i] ~= v then
+			return true
+		end
+	end
+	return false
 end
 
 
@@ -150,13 +171,20 @@ function core.interpolation.interpolate(from, to)
 		table.remove(core.interpolation,1)
 	end
 
+	local delta = core.snapshot.getDelta()
+	for i = 1, delta do
+		core.interpolation[i] = {}
+	end
+
 	for i,v in pairs(from.object) do
 		-- assert(i ~= predict.index) 
-		local delta = core.snapshot.getDelta()
-		for i = 1, delta do
-			core.interpolation[i] = world[v.type].interpolate(v, 
+		for i,a in pairs(v) do
+			print(a)
+		end
+		for j = 1, delta do
+			core.interpolation[j][i] = world[v.type].interpolate(v, 
 						     to.object[i], 
-						     i/delta)
+						     j/delta)
 		end
 	end
 end
@@ -167,7 +195,7 @@ function core.interpolation.initCursor()
 end
 
 function core.interpolation.incCursor()
-	core.interpolation.cursor = core.interpolation.cursor + 1
+	core.interpolation.cursor = math.min(core.interpolation.cursor + 1,core.snapshot.getDelta())
 end
 
 core.action = {}
@@ -200,11 +228,19 @@ function core.action.apply(code)
 		local func, values, rest= data:match("^([^,]*),([^;]*);(.*)$")
 		data = rest
 		if func == "sa" then
-			world.object[index()]:setAngle(tonumber(values))
+			world.object[index]:setAngle(tonumber(values))
 		elseif func == "ma" then
-			world.object[index()]:moveAngle(tonumber(values))
+			world.object[index]:moveAngle(tonumber(values))
 		elseif func == "sv" then
-			world.object[index()]:setVelocity(tonumber(values))
+			world.object[index]:setVelocity(tonumber(values))
 		end
 	end
+end
+
+function core.action.getLastAction()
+	return core.action[#core.action]
+end
+
+function core.action.newAction(code)
+	core.action[#core.action].code = core.action[#core.action].code..code
 end

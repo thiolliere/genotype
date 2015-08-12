@@ -50,7 +50,7 @@ function hoverfly.create()
 		h:setPosition(x,y)
 	end
 
-	function h:setY()
+	function h:setY(y)
 		local x = self.shape:center()
 		h:setPosition(x,y)
 	end
@@ -84,7 +84,7 @@ function hoverfly.create()
 	end
 
 	function h:destroy()
-		collider:remove(self.shape)
+		world.collider:remove(self.shape)
 		self:setState("0")
 	end
 
@@ -108,10 +108,10 @@ function hoverfly.create()
 
 	function h:setAttribut(att)
 		if att.x then
-			h:setX(x)
+			h:setX(att.x)
 		end
 		if att.y then
-			h:setY(y)
+			h:setY(att.y)
 		end
 		if att.velocity then
 			h:setVelocity(att.velocity)
@@ -150,14 +150,16 @@ function hoverfly.interpolate(from, to, frac)
 end
 
 function hoverfly.decodeAttribut(data)
+	print("decode data :"..data)
 	local att = {}
 	att.x,att.y,att.velocity,att.angle,att.state = data:match(
-		"^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*);$")
+		"^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*);$")
 	att.x = tonumber(att.x)
 	att.y = tonumber(att.y)
 	att.velocity = tonumber(att.velocity)
 	att.angle = tonumber(att.angle)
 	att.type = "hoverfly"
+	print("decode x : "..att.x)
 	return att
 end
 

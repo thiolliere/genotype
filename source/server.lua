@@ -80,7 +80,7 @@ function love.run()
 
 					local index = event.peer:index()
 					print("server : "..index.." disconnected")
-					world[index]:destroy()
+					world.object[index]:destroy()
 					lastAction[index] = nil
 
 				end

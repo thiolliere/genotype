@@ -1,3 +1,4 @@
+require "user"
 function love.load()
 	love.keyboard.setKeyRepeat(false)
 
@@ -93,14 +94,33 @@ function love.run()
 		-- update world
 		love.update()
 
-		if love.gotTime() and love.window and love.graphics and love.window.isCreated() then
+		if love.window and love.graphics and love.window.isCreated() then
 			love.graphics.clear()
 			love.graphics.origin()
 			if love.draw then love.draw() end
 			love.graphics.present()
 		end
 
-		love.sleep()
+		-- static rate
+		do 
+			local time = core.getRate()/1000 - (love.timer.getTime() - frameBeginTime)
+			if time < 0 then
+				return
+--				if time < -rate/1000 then 
+--					print("client 2 rate exceeded"..time)
+--					exceeded = exceeded + 1
+--				end
+--
+--				print("client rate exceeded"..time)
+--				exceeded = exceeded + 1
+--
+--				love.timer.sleep(time % (rate/1000) + math.floor(time/rate*1000))
+			else
+--				nonexceeded = nonexceeded + 1
+				love.timer.sleep(time)
+			end
+		end
+
 
 		if love.timer then
 			love.timer.step()
@@ -118,32 +138,31 @@ function love.update()
 			if event.type == "receive" then
 				print("client receive : "..event.data)
 
-				local dsnap = core.snapshot.decode(event.data)
+				core.snapshot.newSnap(event.data)
+				local old,new = core.snapshot.getSnap()
 
-				local n = core.action.cutToIndex(snap:getLastAction())
+				core.action.cutToIndex(new:getLastAction())
 
-				core.snapshot.completeSnap(dsnap,core.snapshot.getLast())
-				local snap = dsnap
-
-				core.prediction.setAuthority(
-					core.snapshot.removeIndex(index, snap))
-				core.interpolation.interpolate(core.snapshot.last,snap)
-				core.interpolation.initCurrent()
+				local index = core.prediction.getIndex()
+				core.prediction.setAuthority(new:removeIndex(index))
+				core.interpolation.interpolate(old,new)
+				core.interpolation.initCursor()
 
 				core.prediction.cut(#core.prediction - #core.action)
-				if core.diff(
-					core.prediction[1], 
-					core.prediction.getAuthority) then
-
-					core.prediction.reconciliate(snap)
+				if core.prediction.diff() then
+					core.prediction.reconciliate(new)
 				else
-					core.prediction.predict(core.action[#core.action])
+					core.prediction.predict(core.action[#core.action].code)
 				end
 
-				for i,v in pairs(core.snapshot.getObject(snap)) do
+				for i,v in pairs(core.interpolation[core.interpolation.cursor]) do
 					world.solveDelta(i,v)
 				end
-				world.solveDelta(core.prediction.getIndex(),core.prediction[#core.prediction])
+
+				world.solveDelta(
+					core.prediction.getIndex(),
+					core.prediction[#core.prediction])
+
 
 			elseif event.type == "connect" then
 			elseif event.type == "disconnect" then
@@ -156,9 +175,9 @@ function love.update()
 		end
 	else
 		core.interpolation.incCursor()
-		core.prediction.predict()
+		core.prediction.predict(core.action[#core.action].code)
 
-		for i,v in pairs(core.snapshot.getObject(snap)) do
+		for i,v in pairs(core.interpolation[core.interpolation.cursor]) do
 			world.solveDelta(i,v)
 		end
 
@@ -169,127 +188,11 @@ function love.update()
 end
 
 function love.draw()
-	for _,ent in ipairs(entity) do
-		if ent then
-			local x,y = ent:getPosition()
-			love.graphics.circle("fill",x,y,10)
-		end
+	for _,obj in pairs(world.object) do
+		local x,y = obj:getPosition()
+		love.graphics.circle("fill",x,y,10)
 	end
-	love.graphics.print("exces ratio : "..exceeded/(exceeded+nonexceeded).."\nexces : "..exceeded.."\ndiff ratio : "..diff/(diff + nondiff).."\ndiff : "..diff.."\nping : "..server:round_trip_time().."\nlastping : "..server:last_round_trip_time())
-end
-
-if arg[2] and arg[2] == "bot" then
-	timeToChange = 0
-	function userAction()
-		local reposition = 0.3
-		local v = 300
-		local x = entity[predict.index]:getX()
-		local y = entity[predict.index]:getY()
-		local w = love.window.getWidth()
-		local h = love.window.getHeight()
-
-		if entity[predict.index].velocity == 0 then
-			action.newAction("sv,"..v..";")
-		end
-		if entity[predict.index].x then
-			print(w,entity[predict.index].x)
-		end
-		if x > w then
-			timeToChange = love.timer.getTime() + reposition
-			action.newAction("sa,"..tostring(math.pi)..";")
-		elseif x < 0 then
-			timeToChange = love.timer.getTime() + reposition
-			action.newAction("sa,"..tostring(0)..";")
-		elseif y > h then
-			timeToChange = love.timer.getTime() + reposition
-			action.newAction("sa,"..tostring(-math.pi/2)..";")
-		elseif y < 0 then
-			timeToChange = love.timer.getTime() + reposition
-			action.newAction("sa,"..tostring(math.pi/2)..";")
-		elseif love.timer.getTime() > timeToChange then
-			local a = math.random(1,314*2)/100
-			action.newAction("sa,"..tostring(a)..";")
-			timeToChange = love.timer.getTime() + math.random(0.2,2)
-		end
-	end
-
-else
-	function userAction()
-		local v = 300
-		if love.keyboard.isDown("up") then
-			if love.keyboard.isDown("right") then
-				local a = -math.pi/4
-				if entity[predict.index]:getAngle() ~= a then
-					action.newAction("sa,"..tostring(a)..";")
-				end
-				if entity[predict.index]:getVelocity() ~= v then
-					action.newAction("sv,"..v..";")
-				end
-			elseif love.keyboard.isDown("left") then
-				local a = -math.pi*3/4
-				if entity[predict.index]:getAngle() ~= a then
-					action.newAction("sa,"..tostring(a)..";")
-				end
-				if entity[predict.index]:getVelocity() ~= v then
-					action.newAction("sv,"..v..";")
-				end
-			else
-				local a = -math.pi/2
-				if entity[predict.index]:getAngle() ~= a then
-					action.newAction("sa,"..tostring(a)..";")
-				end
-				if entity[predict.index]:getVelocity() ~= v then
-					action.newAction("sv,"..v..";")
-				end
-			end
-		elseif love.keyboard.isDown("down") then
-			if love.keyboard.isDown("right") then
-				local a = math.pi/4
-				if entity[predict.index]:getAngle() ~= a then
-					action.newAction("sa,"..tostring(a)..";")
-				end
-				if entity[predict.index]:getVelocity() ~= v then
-					action.newAction("sv,"..v..";")
-				end
-			elseif love.keyboard.isDown("left") then
-				local a = math.pi*3/4
-				if entity[predict.index]:getAngle() ~= a then
-					action.newAction("sa,"..tostring(a)..";")
-				end
-				if entity[predict.index]:getVelocity() ~= v then
-					action.newAction("sv,"..v..";")
-				end
-			else
-				local a = math.pi/2
-				if entity[predict.index]:getAngle() ~= a then
-					action.newAction("sa,"..tostring(a)..";")
-				end
-				if entity[predict.index]:getVelocity() ~= v then
-					action.newAction("sv,"..v..";")
-				end
-			end
-		elseif love.keyboard.isDown("right") then
-			local a = 0
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
-		elseif love.keyboard.isDown("left") then
-			local a = math.pi
-			if entity[predict.index]:getAngle() ~= a then
-				action.newAction("sa,"..tostring(a)..";")
-			end
-			if entity[predict.index]:getVelocity() ~= v then
-				action.newAction("sv,"..v..";")
-			end
-		else
-			if entity[predict.index]:getVelocity() ~= 0 then
-				action.newAction("sv,0;")
-			end
-		end
-	end
+--	love.graphics.print("exces ratio : "..exceeded/(exceeded+nonexceeded).."\nexces : "..exceeded.."\ndiff ratio : "..diff/(diff + nondiff).."\ndiff : "..diff.."\nping : "..server:round_trip_time().."\nlastping : "..server:last_round_trip_time())
 end
 
 function love.keypressed(key, isrepeat)

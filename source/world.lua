@@ -29,7 +29,7 @@ end
 function world.decodeObject(data)
 	local object = {}
 	while data ~= "" do
-		local index,type,att,rest = data:match("^([^,]*),([^,]*),([^;]*);(.*)$")
+		local index,type,att,rest = data:match("^([^,]*),([^,]*),([^;]*;)(.*)$")
 		data = rest
 
 		object[tonumber(index)] = world[type].decodeAttribut(att)
