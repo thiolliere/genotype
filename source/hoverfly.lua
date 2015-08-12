@@ -144,13 +144,12 @@ function hoverfly.interpolate(from, to, frac)
 	for i , v in pairs(from) do
 		t[i] = v
 	end
-	t.x = from.x*frac + to.x*(1-frac) 
-	t.y = from.y*frac + to.y*(1-frac) 
+	t.x = from.x*(1-frac) + to.x*frac 
+	t.y = from.y*(1-frac) + to.y*frac 
 	return t
 end
 
 function hoverfly.decodeAttribut(data)
-	print("decode data :"..data)
 	local att = {}
 	att.x,att.y,att.velocity,att.angle,att.state = data:match(
 		"^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*);$")
@@ -159,7 +158,6 @@ function hoverfly.decodeAttribut(data)
 	att.velocity = tonumber(att.velocity)
 	att.angle = tonumber(att.angle)
 	att.type = "hoverfly"
-	print("decode x : "..att.x)
 	return att
 end
 

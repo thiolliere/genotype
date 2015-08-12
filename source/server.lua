@@ -26,7 +26,6 @@ function love.run()
 				return false
 			end
 		end
-		print("server : loaded")
 	end
 
 	local dt = 0
@@ -44,7 +43,6 @@ function love.run()
 				if event.type == "receive" then
 
 					local data = event.data
-					print("server receive : "..data)
 					local packetType, rest = data:match("^(%a)(.*)$")
 					data = rest
 					if packetType == "a" then
@@ -67,7 +65,6 @@ function love.run()
 				elseif event.type == "connect" then
 
 					local index = event.peer:index()
-					print("server : peer number "..index.." connected")
 					world.object[index] = world.hoverfly.create()
 					lastAction[index] = 0
 					event.peer:send(index..";"..
@@ -79,7 +76,6 @@ function love.run()
 				elseif event.type == "disconnect" then
 
 					local index = event.peer:index()
-					print("server : "..index.." disconnected")
 					world.object[index]:destroy()
 					lastAction[index] = nil
 
@@ -114,6 +110,22 @@ function love.run()
 			else
 				love.timer.sleep(time)
 			end
+		end
+
+		-- debug print
+		do
+			local msg = "\n----------\n\n"
+			local p = host:peer_count()
+			for i = 1 , p do
+				local peer = host:get_peer(i)
+				if peer:state() == "connected" then
+					t = world.object[i]:getAttribut()
+					msg=msg.."peer : index "..i..", lastActionindex "..lastAction[i].."\n".."--> type="..t.type..",x="..t.x..",y="..t.y.."\n"..
+						"--> velocity="..t.velocity..",angle="..t.angle..",state"..t.state.."\n"
+				end
+			end
+			print(msg)
+			
 		end
 
 	end

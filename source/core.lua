@@ -23,7 +23,10 @@ function core.snapshot.encodeSnap(lastAction,objectData)
 end
 
 function core.snapshot.createSnap()
-	local snap = {object = {}}
+	local snap = {
+		lastAction = 0,
+		object = {}
+	}
 
 	function snap:getObject()
 		return self.object
@@ -128,8 +131,9 @@ function core.prediction.reconciliate(snap)
 	end
 
 	core.prediction[1] = core.prediction.authority
+	world.solveDelta(core.prediction.index,core.prediction.authority)
 	for i = 1, #core.action do
-		core.prediction.predict(core.action[1].code)
+		core.prediction.predict(core.action[i].code)
 	end
 end
 
@@ -150,14 +154,17 @@ function core.prediction.cut(n)
 	end
 end
 
+diff = "nil"
 function core.prediction.diff()
 	local auth = core.prediction.getAuthority()
 	local pred = core.prediction[1]
 	for i,v in pairs(auth) do
 		if pred[i] ~= v then
+			diff = "true"
 			return true
 		end
 	end
+	diff = "false"
 	return false
 end
 
@@ -178,9 +185,6 @@ function core.interpolation.interpolate(from, to)
 
 	for i,v in pairs(from.object) do
 		-- assert(i ~= predict.index) 
-		for i,a in pairs(v) do
-			print(a)
-		end
 		for j = 1, delta do
 			core.interpolation[j][i] = world[v.type].interpolate(v, 
 						     to.object[i], 

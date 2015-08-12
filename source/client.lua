@@ -8,7 +8,6 @@ function love.load()
 	assert(host:service(10000).data == 0)
 
 	event = host:service(10000)
-	print("client first receive: "..event.data)
 	assert(event.type == "receive")
 
 
@@ -62,7 +61,6 @@ function love.run()
 
 	-- Main loop time.
 	while true do
-		print("\n----\n")
 		-- the time the frame begin
 		local frameBeginTime = love.timer.getTime()
 
@@ -126,6 +124,74 @@ function love.run()
 			love.timer.step()
 			dt = love.timer.getDelta()
 		end
+
+		-- debug print
+		do
+			local msg = "\n----------\n\n"
+			completeLine = function(n)
+				for i = 1,n do
+					msg = msg.."\n"
+				end
+			end
+
+			msg = msg.."world : \n"
+			local l = 0
+			for i,v in pairs(world.object) do
+				l = l+1
+				t = v:getAttribut()
+				msg=msg.."peer : index "..i..",type="..t.type..",x="..t.x..",y="..t.y..",velocity="..t.velocity..",angle="..t.angle..",state"..t.state.."\n"
+			end
+			completeLine(4-l)
+
+			msg = msg.."\naction stack\n"
+			local l = 0
+			for i,v in ipairs(core.action) do
+				l = l+1
+				msg = msg.."id="..v.index..",code="..v.code.."\n"
+			end
+			completeLine(7-l)
+
+			msg = msg.."\nprediction stack\n"
+			local l = 0
+			for i,v in ipairs(core.prediction) do
+				l = l+1
+				msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state.."\n"
+			end
+			completeLine(7-l)
+
+--			msg = msg.."\ninterpolation : cursor="..core.interpolation.cursor.."\n"
+--			local l = 0
+--			for i,w in ipairs(core.interpolation) do
+--				l = l+1
+--				msg = msg.."i = "..i.."\n"
+--				local k = 0
+--				for i,v in pairs(w) do
+--					k = k+1
+--					msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state.."\n"
+--				end
+--				completeLine(4-k)
+--			end
+--			completeLine(5-l)
+
+			msg = msg.."\nsnapshot : new ="..core.snapshot.new.."\n"
+			local l = 0
+			for i,w in ipairs(core.snapshot) do
+				l = l+1
+				msg = msg.."i = "..i.." lastAction = "..w:getLastAction().."\n"
+				local k = 0
+				for i,v in pairs(w.object) do
+					k = k+1
+					msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state.."\n"
+				end
+				completeLine(4-k)
+			end
+			completeLine(5-l)
+
+			msg = msg.."\n diff = "..diff
+			diff = "nil"
+
+			print(msg)
+		end
 	end
 end
 
@@ -136,7 +202,6 @@ function love.update()
 	if event then
 		while event do
 			if event.type == "receive" then
-				print("client receive : "..event.data)
 
 				core.snapshot.newSnap(event.data)
 				local old,new = core.snapshot.getSnap()
@@ -169,7 +234,6 @@ function love.update()
 			end
 			event = host:service()
 			if event then
-				print("-- two snapshot in a frame")
 				return
 			end
 		end
@@ -199,7 +263,6 @@ function love.keypressed(key, isrepeat)
 	if key == "escape" then
 		server:disconnect()
 		while server:state() ~= "disconnected" do
-			print(server:state())
 			love.timer.sleep(0.1)
 			host:service()
 		end
