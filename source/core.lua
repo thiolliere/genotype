@@ -155,13 +155,13 @@ function core.prediction.cut(n)
 end
 
 diff = "nil"
-numError = 1
+core.prediction.numError = 0.01
 function core.prediction.diff()
 	local auth = core.prediction.getAuthority()
 	local pred = core.prediction[1]
 	for i,v in pairs(auth) do
 		if type(pred[i]) == "number" then
-			if (pred[i]-v)/v > numError then
+			if math.abs((pred[i]-v)/v) > core.prediction.numError then
 				diff = "true"
 				return true
 			end

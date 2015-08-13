@@ -4,12 +4,16 @@ world.HC = require "lib.HardonCollider"
 world.object= {}
 
 function world.onCollision(dt, shapeOne, shapeTwo, dx, dy)
+	objectOne = shapeOne:getUserData()
+	objectTwo = shapeTwo:getUserData()
+	objectOne:move(dx/2, dy/2)
+	objectTwo:move(-dx/2, -dy/2)
 end
 
 function world.collisionStop(dt, shapeOne, shapeTwo, dx, dy)
 end
 
-world.collider = world.HC(100, onCollision, collisionStop)
+world.collider = world.HC.new(100, world.onCollision, world.collisionStop)
 
 function world.solveDelta(index, table)
 	if not world.object[index] and table.type then

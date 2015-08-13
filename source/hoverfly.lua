@@ -10,6 +10,10 @@ function hoverfly.create()
 	h.velocity = 0
 	h.state = "0"
 	h.shape = world.collider:addCircle(0, 0, radius)
+	function h.shape:getUserData()
+		return h
+	end
+
 
 	-- set methods
 	function h:setAngle(angle)

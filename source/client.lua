@@ -209,7 +209,10 @@ function love.update()
 				core.action.cutToIndex(new:getLastAction())
 
 				local index = core.prediction.getIndex()
-				core.prediction.setAuthority(new:removeIndex(index))
+				local auth = new:removeIndex(index)
+
+				local t = auth
+				core.prediction.setAuthority(auth)
 				core.interpolation.interpolate(old,new)
 				core.interpolation.initCursor()
 
