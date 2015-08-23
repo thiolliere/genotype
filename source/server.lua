@@ -54,7 +54,7 @@ function love.run()
 				elseif event.type == "connect" then
 
 					local index = event.peer:index()
-					world.object[index] = world.hoverfly.create()
+					world.object[index] = world.hoverfly.create(index)
 					lastAction[index] = 0
 					event.peer:send(index..";"..
 		     				rate..";"..

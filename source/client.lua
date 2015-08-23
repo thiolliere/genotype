@@ -181,7 +181,7 @@ function love.run()
 				local k = 0
 				for i,v in pairs(w.object) do
 					k = k+1
-					msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count"\n"
+					msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count.."\n"
 				end
 				completeLine(4-k)
 			end
@@ -256,8 +256,7 @@ end
 
 function love.draw()
 	for _,obj in pairs(world.object) do
-		local x,y = obj:getPosition()
-		love.graphics.circle("fill",x,y,10)
+		obj:draw()
 	end
 --	love.graphics.print("exces ratio : "..exceeded/(exceeded+nonexceeded).."\nexces : "..exceeded.."\ndiff ratio : "..diff/(diff + nondiff).."\ndiff : "..diff.."\nping : "..server:round_trip_time().."\nlastping : "..server:last_round_trip_time())
 end

@@ -1,14 +1,15 @@
 local hoverfly = {}
 
-function hoverfly.create()
+function hoverfly.create(index)
 	local h = {}
 
 	h.type = "hoverfly"
 
 	local radius = 10
-	local damageWidth = 2
-	local damageHeight = 6
+	local damageWidth = 80
+	local damageHeight = 300
 
+	h.index = index
 	h.velocity = 0
 	h.state = "normal"
 	h.count = 1
@@ -90,36 +91,36 @@ function hoverfly.create()
 	end
 
 	function h:update(dt)
-		if self.state ~= "dead" then
-			local dx = self.velocity * dt * math.cos(self:getAngle())
-			local dy = self.velocity * dt * math.sin(self:getAngle())
-			self.shape:move(dx, dy)
+		local dx = self.velocity * dt * math.cos(self:getAngle())
+		local dy = self.velocity * dt * math.sin(self:getAngle())
+		self.shape:move(dx, dy)
 
-			if self.state == "attack"  then
-				if self.count == 1 then
-					local sx,sy = self:getPosition()
-					local sa = self:getAngle()
+		if self.state == "attack"  then
+			if self.count == 1 then
+				local sx,sy = self:getPosition()
+				local sa = self:getAngle()
 
-					local possibilty = world.collider:shapesInRange(sx-damageHeight,sy-damageHeight,sx+damageHeight,sy+damageHeight)
+				local possibilty = world.collider:shapesInRange(sx-damageHeight,sy-damageHeight,sx+damageHeight,sy+damageHeight)
 
-					local x1,y1 = sx+damageWidth/2*math.sin(sa),sy+damageWidth/2*math.cos(sa)
-					local x2,y2 = sx-damageWidth/2*math.sin(sa),sy-damageWidth/2*math.cos(sa)
-					local x3,y3 = x2+damageHeight*math.cos(sa),y2+damageHeight*math.sin(sa)
-					local x4,y4 = x1+damageHeight*math.cos(sa),y1+damageHeight*math.sin(sa)
-					--print(x1,y1,x2,y2,x3,y3,x4,y4)
-					local damageShape = world.collider:addPolygon(x1,y1,x2,y2,x3,y3,x4,y4)
+				local x1,y1 = sx-damageWidth/2*math.sin(sa),sy+damageWidth/2*math.cos(sa)
+				local x2,y2 = sx+damageWidth/2*math.sin(sa),sy-damageWidth/2*math.cos(sa)
+				local x3,y3 = x2+damageHeight*math.cos(sa),y2+damageHeight*math.sin(sa)
+				local x4,y4 = x1+damageHeight*math.cos(sa),y1+damageHeight*math.sin(sa)
+				local damageShape = world.collider:addPolygon(x1,y1,x2,y2,x3,y3,x4,y4)
 
-					for i,v in ipairs(possibilty) do
-						if v:collidesWith(damageShape) then
-							v:kill()
+				for i,v in pairs(possibilty) do
+					if v:collidesWith(damageShape) then
+						other = v:getUserData()
+						if other.index ~= self.index then
+							other:kill()
 						end
 					end
-
-					world.collider:remove(damageShape)
-
-				elseif self.count >= 6 then
-					self:setState("normal")
 				end
+
+				world.collider:remove(damageShape)
+
+			elseif self.count >= 6 then
+				self:setState("normal")
 			end
 		end
 		self.count = self.count + 1
@@ -162,8 +163,19 @@ function hoverfly.create()
 			love.graphics.setColor(0,0,255)
 		end
 		local x,y = self:getPosition()
+
 		love.graphics.circle("fill",x,y,radius)
---		self.shape:draw()
+
+		if self.state == "attack" and self.count == 2 then
+			love.graphics.setColor(125,125,0)
+			local sx,sy = self:getPosition()
+			local sa = self:getAngle()
+			local x1,y1 = sx-damageWidth/2*math.sin(sa),sy+damageWidth/2*math.cos(sa)
+			local x2,y2 = sx+damageWidth/2*math.sin(sa),sy-damageWidth/2*math.cos(sa)
+			local x3,y3 = x2+damageHeight*math.cos(sa),y2+damageHeight*math.sin(sa)
+			local x4,y4 = x1+damageHeight*math.cos(sa),y1+damageHeight*math.sin(sa)
+			love.graphics.polygon("fill",x1,y1,x2,y2,x3,y3,x4,y4)
+		end
 	end
 
 	function h:setAttribut(att)

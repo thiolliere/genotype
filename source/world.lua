@@ -17,7 +17,7 @@ world.collider = world.HC.new(100, world.onCollision, world.collisionStop)
 
 function world.solveDelta(index, table)
 	if not world.object[index] and table.type then
-		world.object[index] = world[table.type].create()
+		world.object[index] = world[table.type].create(index)
 	end
 	world.object[index]:setAttribut(table)
 end
