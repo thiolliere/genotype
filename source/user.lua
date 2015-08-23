@@ -110,5 +110,8 @@ else
 				core.action.newAction("sv,0;")
 			end
 		end
+		if love.keyboard.isDown(" ") then
+			core.action.newAction("at,;")
+		end
 	end
 end

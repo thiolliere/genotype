@@ -46,20 +46,9 @@ function love.run()
 					local packetType, rest = data:match("^(%a)(.*)$")
 					data = rest
 					if packetType == "a" then
-						local id, rest= data:match("^([^;]*);(.*)$")
-						data = rest
+						local id, code = data:match("^([^;]*);(.*)$")
 						lastAction[event.peer:index()] = id
-						while data ~= "" do
-							local func, values, rest= data:match("^([^,]*),([^;]*);(.*)$")
-							data = rest
-							if func == "sa" then
-								world.object[event.peer:index()]:setAngle(tonumber(values))
-							elseif func == "ma" then
-								world.object[event.peer:index()]:moveAngle(tonumber(values))
-							elseif func == "sv" then
-								world.object[event.peer:index()]:setVelocity(tonumber(values))
-							end
-						end
+						core.action.apply(event.peer:index(),code)
 					end
 
 				elseif event.type == "connect" then
@@ -121,7 +110,7 @@ function love.run()
 				if peer:state() == "connected" then
 					t = world.object[i]:getAttribut()
 					msg=msg.."peer : index "..i..", lastActionindex "..lastAction[i].."\n".."--> type="..t.type..",x="..t.x..",y="..t.y.."\n"..
-						"--> velocity="..t.velocity..",angle="..t.angle..",state"..t.state.."\n"
+						"--> velocity="..t.velocity..",angle="..t.angle..",state="..t.state..",count="..t.count.."\n"
 				end
 			end
 			print(msg)

@@ -138,7 +138,8 @@ function core.prediction.reconciliate(snap)
 end
 
 function core.prediction.predict(code)
-	core.action.apply(code)
+	local index = core.prediction.getIndex()
+	core.action.apply(index,code)
 	world.object[core.prediction.index]:predict(core.getRate()/1000)
 
 	core.prediction[#core.prediction+1] = world.object[core.prediction.index]:getAttribut()
@@ -231,9 +232,8 @@ function core.action.send()
 	server:send("a"..core.action[#core.action].index..";"..core.action[#core.action].code)
 end
 
-function core.action.apply(code)
+function core.action.apply(index,code)
 	local data = code
-	local index = core.prediction.getIndex()
 	while data ~= "" do
 		local func, values, rest= data:match("^([^,]*),([^;]*);(.*)$")
 		data = rest
@@ -243,6 +243,8 @@ function core.action.apply(code)
 			world.object[index]:moveAngle(tonumber(values))
 		elseif func == "sv" then
 			world.object[index]:setVelocity(tonumber(values))
+		elseif func == "at" then
+			world.object[index]:attack(tonumber(values))
 		end
 	end
 end

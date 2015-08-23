@@ -155,7 +155,7 @@ function love.run()
 			local l = 0
 			for i,v in ipairs(core.prediction) do
 				l = l+1
-				msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state.."\n"
+				msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count.."\n"
 			end
 			completeLine(7-l)
 
@@ -181,7 +181,7 @@ function love.run()
 				local k = 0
 				for i,v in pairs(w.object) do
 					k = k+1
-					msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state.."\n"
+					msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count"\n"
 				end
 				completeLine(4-k)
 			end
