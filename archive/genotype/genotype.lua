@@ -1,3 +1,0 @@
-genotype = {}
-
-require "genotype.audio"

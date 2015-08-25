@@ -1,12 +1,12 @@
-local hoverfly = {}
-hoverfly.image = love.graphics.newImage("image/hoverfly.png")
+local character = {}
+character.image = love.graphics.newImage("image/character.png")
 
 local attackTime = 15
 
-function hoverfly.create(index,x,y)
+function character.create(index,x,y)
 	local h = {}
 
-	h.type = "hoverfly"
+	h.type = "character"
 
 	local radius = 10
 --	local damageWidth = 80
@@ -30,7 +30,7 @@ function hoverfly.create(index,x,y)
 		return h
 	end
 
-	h.attackSound = love.audio.newSource("sound/hoverflyAttack.wav")
+	h.attackSound = love.audio.newSource("sound/characterAttack.wav")
 	function h:attack()
 		if self.state == "normal" then
 			if not mute then
@@ -168,7 +168,6 @@ function hoverfly.create(index,x,y)
 	function h:kill()
 		world.notify(self.index)
 		self:setVelocity(0)
-		world.collider:remove(self.shape)
 		self:setState("dead")
 	end
 
@@ -190,7 +189,7 @@ function hoverfly.create(index,x,y)
 		local x,y = self:getPosition()
 
 		t.index = self.index
-		t.type = "hoverfly"
+		t.type = "character"
 		t.x = x
 		t.y = y
 		t.velocity = self:getVelocity()
@@ -207,7 +206,7 @@ function hoverfly.create(index,x,y)
 		return "type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count..",life="..v.life.."\n"
 	end
 
-	local g = anim8.newGrid(64, 64, hoverfly.image:getWidth(), hoverfly.image:getHeight())
+	local g = anim8.newGrid(64, 64, character.image:getWidth(), character.image:getHeight())
 	h.animation = {}
 	h.animation.normal = anim8.newAnimation(g("1-4",1), 0.05)
 	h.animation.attack = anim8.newAnimation(g("1-4",2),attackTime*core.rate/4000)
@@ -241,7 +240,7 @@ function hoverfly.create(index,x,y)
 		if true then
 			local x,y = self:getPosition()
 			local a = self:getAngle()
-			self.animation[self.state]:draw(hoverfly.image,x,y,a,1,1,32,32)
+			self.animation[self.state]:draw(character.image,x,y,a,1,1,32,32)
 			self.animation[self.state]:update(0.02)
 		end
 	end
@@ -312,7 +311,7 @@ function hoverfly.create(index,x,y)
 	return h
 end
 
-function hoverfly.interpolate(from, to, frac)
+function character.interpolate(from, to, frac)
 	if not from then
 		return nil
 	end
@@ -321,7 +320,7 @@ function hoverfly.interpolate(from, to, frac)
 	for i , v in pairs(from) do
 		t[i] = v
 	end
-	if to.type == "hoverfly" then
+	if to.type == "character" then
 		t.x = from.x*(1-frac) + to.x*frac 
 		t.y = from.y*(1-frac) + to.y*frac 
 
@@ -339,7 +338,7 @@ function hoverfly.interpolate(from, to, frac)
 	return t
 end
 
-function hoverfly.decodeAttribut(data)
+function character.decodeAttribut(data)
 	local att = {}
 	att.x,att.y,att.velocity,att.angle,att.state,att.count,att.life = data:match(
 		"^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*);$")
@@ -348,9 +347,9 @@ function hoverfly.decodeAttribut(data)
 	att.velocity = tonumber(att.velocity)
 	att.angle = tonumber(att.angle)
 	att.count = tonumber(att.count)
-	att.type = "hoverfly"
+	att.type = "character"
 	att.life = tonumber(att.life)
 	return att
 end
 
-return hoverfly
+return character
