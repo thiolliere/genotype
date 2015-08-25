@@ -11,21 +11,7 @@ function love.run()
 	do
 		host = enet.host_create("localhost:6789")
 
-		rate = 20
-
 		lastAction = {}
-
-		deltaBetweenSnapshot = 4
-		local iterator = 0
-		timeToSendSnapshot = function()
-			iterator = iterator - 1
-			if iterator <= 0 then
-				iterator = deltaBetweenSnapshot
-				return true
-			else
-				return false
-			end
-		end
 	end
 
 	local dt = 0
@@ -56,17 +42,28 @@ function love.run()
 					local index = event.peer:index()
 					world.object[index] = world.hoverfly.create(index)
 					lastAction[index] = 0
+					local saveNotify = {}
+					for i,v in pairs(world.notified) do
+						saveNotify[i] = v
+					end
+					for i,v in pairs(world.object) do
+						world.notify(i)
+					end
 					event.peer:send(index..";"..
-		     				rate..";"..
-						deltaBetweenSnapshot..";"..
+		     				core.getRate()..";"..
+						core.snapshot.deltaBetweenSnapshot..";"..
 						lastAction[index]..";"..
 						world.encodeObject())
+					world.notified = saveNotify
+					world.notify(index)
 
 				elseif event.type == "disconnect" then
 
 					local index = event.peer:index()
 					world.object[index]:destroy()
+					world.object[index] = nil
 					lastAction[index] = nil
+					world.notify(index)
 
 				end
 
@@ -75,11 +72,11 @@ function love.run()
 			end
 		end
 
-		world.update(rate/1000)
+		world.update(core.rate/1000)
 
 		-- send snapshot
 		do
-			if timeToSendSnapshot() then
+			if core.snapshot.timeToSendSnapshot() then
 				local objectData = world.encodeObject()
 				local p = host:peer_count()
 				for i = 1, p do
@@ -88,12 +85,13 @@ function love.run()
 						peer:send(core.snapshot.encodeSnap(lastAction[i],objectData))
 					end
 				end
+				world.resetNotify()
 			end
 		end
 
 		-- static rate
 		do 
-			local time = rate/1000 - (love.timer.getTime() - frameBeginTime)
+			local time = core.rate/1000 - (love.timer.getTime() - frameBeginTime)
 			if time < 0 then
 				print("!! server rate exceeded !!")
 			else

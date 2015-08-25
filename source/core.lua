@@ -1,4 +1,6 @@
-core = {}
+core = {
+	rate = 20
+}
 
 -- set the rate of the main loop
 function core.setRate(rate)
@@ -11,11 +13,6 @@ function core.getRate()
 end
 
 -- module that manage snapshot 
---
--- a snapshot is table with :
---	lastAction
---	object = {}
---	(delta)
 core.snapshot = {}
 
 function core.snapshot.encodeSnap(lastAction,objectData)
@@ -41,8 +38,8 @@ function core.snapshot.createSnap()
 		local toObject = self:getObject()
 
 		for i,v in pairs(fromObject) do
-			if not toObject[i] then
-				toObject[i] = v
+			if not self.object[i] then
+				self.object[i] = v
 			end
 		end
 	end
@@ -95,6 +92,19 @@ function core.snapshot.getOld()
 	return core.snapshot[core.snapshot.new % 2 + 1]
 end
 
+core.snapshot.deltaBetweenSnapshot = 4
+do
+	local iterator = 0
+	core.snapshot.timeToSendSnapshot = function()
+		iterator = iterator - 1
+		if iterator <= 0 then
+			iterator = core.snapshot.deltaBetweenSnapshot
+			return true
+		else
+			return false
+		end
+	end
+end
 -- set the delta between server state and local state
 function core.snapshot.setDelta(delta)
 	core.snapshot.delta = delta
@@ -233,20 +243,7 @@ function core.action.send()
 end
 
 function core.action.apply(index,code)
-	local data = code
-	while data ~= "" do
-		local func, values, rest= data:match("^([^,]*),([^;]*);(.*)$")
-		data = rest
-		if func == "sa" then
-			world.object[index]:setAngle(tonumber(values))
-		elseif func == "ma" then
-			world.object[index]:moveAngle(tonumber(values))
-		elseif func == "sv" then
-			world.object[index]:setVelocity(tonumber(values))
-		elseif func == "at" then
-			world.object[index]:attack(tonumber(values))
-		end
-	end
+	world.object[index]:decodeAction(code)
 end
 
 function core.action.getLastAction()

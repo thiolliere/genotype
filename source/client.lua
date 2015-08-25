@@ -37,8 +37,6 @@ function love.load()
 	if user and user.load then 
 		user.load()
 	end
-
-	--	rate = 20
 end
 
 function love.run()
@@ -103,6 +101,7 @@ function love.run()
 		do 
 			local time = core.getRate()/1000 - (love.timer.getTime() - frameBeginTime)
 			if time < 0 then
+				print("TIME EXCEEDED")
 				return
 --				if time < -rate/1000 then 
 --					print("client 2 rate exceeded"..time)
@@ -126,7 +125,7 @@ function love.run()
 		end
 
 		-- debug print
-		do
+		if true then 
 			local msg = "\n----------\n\n"
 			completeLine = function(n)
 				for i = 1,n do
@@ -138,8 +137,7 @@ function love.run()
 			local l = 0
 			for i,v in pairs(world.object) do
 				l = l+1
-				t = v:getAttribut()
-				msg=msg.."peer : index "..i..",type="..t.type..",x="..t.x..",y="..t.y..",velocity="..t.velocity..",angle="..t.angle..",state"..t.state.."\n"
+				msg=msg.."peer : index "..i..v:writeAttribut().."\n"
 			end
 			completeLine(4-l)
 
@@ -155,7 +153,10 @@ function love.run()
 			local l = 0
 			for i,v in ipairs(core.prediction) do
 				l = l+1
-				msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count.."\n"
+				for m,n in pairs(v) do
+					msg = msg..m.."="..n..","
+				end
+				msg = msg.."\n"
 			end
 			completeLine(7-l)
 
@@ -173,23 +174,26 @@ function love.run()
 --			end
 --			completeLine(5-l)
 
-			msg = msg.."\nsnapshot : new ="..core.snapshot.new.."\n"
-			local l = 0
-			for i,w in ipairs(core.snapshot) do
-				l = l+1
-				msg = msg.."i = "..i.." lastAction = "..w:getLastAction().."\n"
-				local k = 0
-				for i,v in pairs(w.object) do
-					k = k+1
-					msg = msg.."type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count.."\n"
-				end
-				completeLine(4-k)
-			end
-			completeLine(5-l)
-
-			msg = msg.."\n diff = "..diff
-			diff = "nil"
-
+--			msg = msg.."\nsnapshot : new ="..core.snapshot.new.."\n"
+--			local l = 0
+--			for i,w in ipairs(core.snapshot) do
+--				l = l+1
+--				msg = msg.."i = "..i.." lastAction = "..w:getLastAction().."\n"
+--				local k = 0
+--				for i,v in pairs(w.object) do
+--					k = k+1
+--					for m,n in pairs(v) do
+--						msg = msg..m.."="..n..","
+--					end
+--					msg = msg.."\n"
+--				end
+--				completeLine(4-k)
+--			end
+--			completeLine(5-l)
+--
+--			msg = msg.."\n diff = "..diff
+--			diff = "nil"
+--
 			print(msg)
 		end
 	end
@@ -255,9 +259,8 @@ function love.update()
 end
 
 function love.draw()
-	for _,obj in pairs(world.object) do
-		obj:draw()
-	end
+	love.graphics.setBackgroundColor(255,255,255)
+	world.draw()
 --	love.graphics.print("exces ratio : "..exceeded/(exceeded+nonexceeded).."\nexces : "..exceeded.."\ndiff ratio : "..diff/(diff + nondiff).."\ndiff : "..diff.."\nping : "..server:round_trip_time().."\nlastping : "..server:last_round_trip_time())
 end
 

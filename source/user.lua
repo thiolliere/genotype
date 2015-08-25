@@ -27,6 +27,7 @@ if arg[2] and arg[2] == "bot" then
 			timeToChange = love.timer.getTime() + reposition
 			core.action.newAction("sa,"..tostring(math.pi/2)..";")
 		elseif love.timer.getTime() > timeToChange then
+			core.action.newAction("at,;")
 			local a = math.random(1,314*2)/100
 			core.action.newAction("sa,"..tostring(a)..";")
 			timeToChange = love.timer.getTime() + math.random(0.2,2)
@@ -34,6 +35,7 @@ if arg[2] and arg[2] == "bot" then
 	end
 
 else
+	mute = false
 	function user.update()
 		local obj = world.object[core.prediction.index]
 		local v = 300
