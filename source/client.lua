@@ -1,7 +1,13 @@
 require "user"
+
+if arg[2] and arg[2] == "bot" then
+	bot = true
+end
+
 function love.load()
 	love.keyboard.setKeyRepeat(false)
 
+	core.action.newIndex()
 	host = enet.host_create()
 	server = host:connect("localhost:6789")
 
@@ -11,15 +17,12 @@ function love.load()
 	assert(event.type == "receive")
 
 
-	local index, rate, delta, snap = event.data:match("^([^;]*);([^;]*);([^;]*);(.*)$")
+	local index, data = event.data:match("^(.)(.*)$")
 
-	index = tonumber(index)
-	delta = tonumber(delta)
-	core.setRate(rate)
-	core.snapshot.setDelta(delta)
+	index = string.byte(index)
 	core.prediction.setIndex(index)
 
-	core.snapshot.newSnap(snap)
+	core.snapshot.newSnap(data)
 	local old, new = core.snapshot.getSnap()
 
 	local auth = new:removeIndex(index)
@@ -93,7 +96,7 @@ function love.run()
 		if love.window and love.graphics and love.window.isCreated() then
 			love.graphics.clear()
 			love.graphics.origin()
-			if love.draw then love.draw() end
+			if love.draw and not bot then love.draw() end
 			love.graphics.present()
 		end
 
@@ -191,8 +194,8 @@ function love.run()
 --			end
 --			completeLine(5-l)
 --
---			msg = msg.."\n diff = "..diff
---			diff = "nil"
+			msg = msg.."\n diff = "..diff
+			diff = "nil"
 --
 			print(msg)
 		end

@@ -1,16 +1,14 @@
 local hoverfly = {}
 hoverfly.image = love.graphics.newImage("image/hoverfly.png")
 
-local attackTime = 15
+local attackTime = 10
 
 function hoverfly.create(index,x,y)
 	local h = {}
 
 	h.type = "hoverfly"
 
-	local radius = 10
---	local damageWidth = 80
---	local damageHeight = 300
+	local radius = 15
 	local damageAmount = 1
 	local visibleRadius = 100
 
@@ -34,6 +32,7 @@ function hoverfly.create(index,x,y)
 	function h:attack()
 		if self.state == "normal" then
 			if not mute then
+				self.attackSound:stop()
 				self.attackSound:play()
 			end
 			self:setState("attack")
@@ -126,15 +125,12 @@ function hoverfly.create(index,x,y)
 				local sx,sy = self:getPosition()
 				local sa = self:getAngle()
 
-				local damageHeight = 24
-				local possibilty = world.collider:shapesInRange(sx-damageHeight,sy-damageHeight,sx+damageHeight,sy+damageHeight)
-
 				local x1,y1 = sx-32/2*math.sin(sa),sy+32/2*math.cos(sa)
 				local x2,y2 = sx+32/2*math.sin(sa),sy-32/2*math.cos(sa)
 				local x3,y3 = sx+10/2*math.sin(sa)+20*math.cos(sa),sy-10/2*math.cos(sa)+20*math.sin(sa)
 				local x4,y4 = sx-10/2*math.sin(sa)+20*math.cos(sa),sy+10/2*math.cos(sa)+20*math.sin(sa)
 				local damageShape = world.collider:addPolygon(x1,y1,x2,y2,x3,y3,x4,y4)
-
+				local possibilty = world.collider:shapesInRange(damageShape:bbox())
 				for i,v in pairs(possibilty) do
 					if v:collidesWith(damageShape) then
 						other = v:getUserData()
@@ -215,7 +211,7 @@ function hoverfly.create(index,x,y)
 	h.animation.dead:pauseAtStart()
 
 	function h:draw()
-		if false then
+		if true then
 			if self.state == "normal" then
 				love.graphics.setColor(255,0,0)
 			elseif self.state == "attack" then
@@ -296,6 +292,7 @@ function hoverfly.create(index,x,y)
 			end
 			world.notify(index)
 		end
+		return ""
 	end
 
 	function h:getVisible()
@@ -324,6 +321,7 @@ function hoverfly.interpolate(from, to, frac)
 	if to.type == "hoverfly" then
 		t.x = from.x*(1-frac) + to.x*frac 
 		t.y = from.y*(1-frac) + to.y*frac 
+		t.angle = from.angle*(1-frac) + to.angle*frac 
 
 		if from.state == "attack" then
 			if from.count + frac*4 >= attackTime then

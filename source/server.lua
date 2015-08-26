@@ -1,6 +1,51 @@
 require "enet"
 require "world"
 
+server = {}
+server.clientLastAction = {}
+server.rate = 20
+do
+	local iterator = 0
+	server.timeToSendSnapshot = function()
+		iterator = iterator - 1
+		if iterator <= 0 then
+			iterator = 4
+			return true
+		else
+			return false
+		end
+	end
+end
+
+--server.action = {}
+--server.action.cursor = 0
+--for i = 1, 255 do
+--	server.action[i] = ""
+--end
+--function server.action.newAction(code)
+--	server.action[server.action.cursor] = 
+--		server.action[server.action.cursor]..string.char(code:len())..code
+--end
+--function server.action.newIndex()
+--	server.action.cursor = server.action.cursor % 255 + 1
+--	server.action[server.action.cursor] = ""
+--end
+--function server.action.get4Past()
+--	local cursor = server.action.cursor
+--	local data = ""
+--	for i = 255-(3-cursor), 255 do
+--		local act = server.action[i]
+--		local n = act:len()
+--		data = data..string.char(math.floor(n/256))..string.char(n%256)..act
+--	end
+--	for i = math.max(cursor-3,1),cursor do 
+--		local act = server.action[i]
+--		local n = act:len()
+--		data = data..string.char(math.floor(n/256))..string.char(n%256)..act
+--	end
+--	return data
+--end
+
 function love.run()
 
 	if love.math then
@@ -10,8 +55,9 @@ function love.run()
 
 	do
 		host = enet.host_create("localhost:6789")
-
-		lastAction = {}
+		for i = 1, 255 do
+			world.null.create(i)
+		end
 	end
 
 	local dt = 0
@@ -28,20 +74,18 @@ function love.run()
 			while event do
 				if event.type == "receive" then
 
-					local data = event.data
-					local packetType, rest = data:match("^(%a)(.*)$")
-					data = rest
-					if packetType == "a" then
-						local id, code = data:match("^([^;]*);(.*)$")
-						lastAction[event.peer:index()] = id
-						core.action.apply(event.peer:index(),code)
+					local type,lastActionIndex,action = event.data:match("^(.)(.)(.*)$")
+					local index = event.peer:index()
+					if type == "a" then
+						server.clientLastAction[index] = string.byte(lastActionIndex)
+						world.object[index]:decodeAction(action)
 					end
 
 				elseif event.type == "connect" then
 
 					local index = event.peer:index()
-					world.object[index] = world.hoverfly.create(index)
-					lastAction[index] = 0
+					world.character.create(index)
+					server.clientLastAction[index] = 1
 					local saveNotify = {}
 					for i,v in pairs(world.notified) do
 						saveNotify[i] = v
@@ -49,11 +93,7 @@ function love.run()
 					for i,v in pairs(world.object) do
 						world.notify(i)
 					end
-					event.peer:send(index..";"..
-		     				core.getRate()..";"..
-						core.snapshot.deltaBetweenSnapshot..";"..
-						lastAction[index]..";"..
-						world.encodeObject())
+					event.peer:send(string.char(index)..string.char(server.clientLastAction[index])..world.encodeObject())
 					world.notified = saveNotify
 					world.notify(index)
 
@@ -61,8 +101,7 @@ function love.run()
 
 					local index = event.peer:index()
 					world.object[index]:destroy()
-					world.object[index] = nil
-					lastAction[index] = nil
+					server.clientLastAction[index] = nil
 					world.notify(index)
 
 				end
@@ -72,17 +111,17 @@ function love.run()
 			end
 		end
 
-		world.update(core.rate/1000)
+		world.update(server.rate/1000)
 
 		-- send snapshot
 		do
-			if core.snapshot.timeToSendSnapshot() then
+			if server.timeToSendSnapshot() then
 				local objectData = world.encodeObject()
 				local p = host:peer_count()
 				for i = 1, p do
 					local peer = host:get_peer(i)
 					if peer:state() == "connected" then
-						peer:send(core.snapshot.encodeSnap(lastAction[i],objectData))
+						peer:send(string.char(server.clientLastAction[i])..objectData)
 					end
 				end
 				world.resetNotify()
@@ -91,13 +130,22 @@ function love.run()
 
 		-- static rate
 		do 
-			local time = core.rate/1000 - (love.timer.getTime() - frameBeginTime)
+			local time = server.rate/1000 - (love.timer.getTime() - frameBeginTime)
 			if time < 0 then
 				print("!! server rate exceeded !!")
 			else
 				love.timer.sleep(time)
 			end
 		end
+
+--		-- draw
+--		if love.window and love.graphics and love.window.isCreated() then
+--			love.graphics.clear()
+--			love.graphics.origin()
+--			love.graphics.setBackgroundColor(255,255,255)
+--			world.draw()
+--			love.graphics.present()
+--		end
 
 		-- debug print
 		do
@@ -107,7 +155,7 @@ function love.run()
 				local peer = host:get_peer(i)
 				if peer:state() == "connected" then
 					t = world.object[i]:getAttribut()
-					msg=msg.."peer : index "..i..", lastActionindex "..lastAction[i].."\n".."--> type="..t.type..",x="..t.x..",y="..t.y.."\n"..
+					msg=msg.."peer : index "..i..", lastActionindex "..server.clientLastAction[i].."\n".."--> type="..t.type..",x="..t.x..",y="..t.y.."\n"..
 						"--> velocity="..t.velocity..",angle="..t.angle..",state="..t.state..",count="..t.count.."\n"
 				end
 			end

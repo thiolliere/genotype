@@ -1,18 +1,17 @@
 local character = {}
 character.image = love.graphics.newImage("image/character.png")
 
-local attackTime = 15
+local swordAttackTime = 10
+local rifleAttackTime = 20
+local shiftWeaponTime = 10
+local radius = 15
+local damageAmount = 1
+local visibleRadius = 100
 
 function character.create(index,x,y)
 	local h = {}
 
 	h.type = "character"
-
-	local radius = 10
---	local damageWidth = 80
---	local damageHeight = 300
-	local damageAmount = 1
-	local visibleRadius = 100
 
 	if index then 
 		h.index = index
@@ -21,23 +20,55 @@ function character.create(index,x,y)
 	end
 		
 	h.velocity = 0
-	h.state = "normal"
+	h.state = "swordLeft"
 	h.count = 1
 	h.life = 1
-	h.shape = world.collider:addCircle(x or 0, y or 0, radius)
 
+	h.weaponAngle = 0
+	function h:setWeaponAngle(a)
+		self.weaponAngle = a
+	end
+	function h:getWeaponAngle()
+		return self.weaponAngle
+	end
+
+	h.shape = world.collider:addCircle(x or 0, y or 0, radius)
 	function h.shape:getUserData()
 		return h
 	end
 
-	h.attackSound = love.audio.newSource("sound/characterAttack.wav")
+	h.attackSound = love.audio.newSource("sound/hoverflyAttack.wav")
 	function h:attack()
-		if self.state == "normal" then
+		if self.state == "swordLeft" then
 			if not mute then
 				self.attackSound:play()
 			end
-			self:setState("attack")
+			self:setState("swordAttackLeft")
 			self.count = 1
+		elseif self.state == "swordRight" then
+			if not mute then
+				self.attackSound:play()
+			end
+			self:setState("swordAttackRight")
+			self.count = 1
+		elseif self.state == "rifle" then
+			if not mute then
+				self.attackSound:play()
+			end
+			self:setState("rifleAttack")
+			self.count = 1
+		end
+	end
+
+	function h:shiftToSword()
+		if self.state == "rifle" then
+			self:setState("shiftToSword")
+		end
+	end
+
+	function h:shiftToRifle()
+		if self.state == "swordLeft" or self.state == "swordRight" then
+			self:setState("shiftToRifle")
 		end
 	end
 
@@ -120,19 +151,22 @@ function character.create(index,x,y)
 			self.shape:move(dx, dy)
 		end
 
-		if self.state == "attack"  then
+		if self.state == "swordAttackLeft" or self.state == "swordAttackRight" then
 			world.notify(self.index)
-			if self.count == 1 then
+			if self.count >= 1 and self.count < swordAttackTime*3/4 then
 				local sx,sy = self:getPosition()
 				local sa = self:getAngle()
 
-				local damageHeight = 24
+				local damageHeight = 50
 				local possibilty = world.collider:shapesInRange(sx-damageHeight,sy-damageHeight,sx+damageHeight,sy+damageHeight)
 
-				local x1,y1 = sx-32/2*math.sin(sa),sy+32/2*math.cos(sa)
-				local x2,y2 = sx+32/2*math.sin(sa),sy-32/2*math.cos(sa)
-				local x3,y3 = sx+10/2*math.sin(sa)+20*math.cos(sa),sy-10/2*math.cos(sa)+20*math.sin(sa)
-				local x4,y4 = sx-10/2*math.sin(sa)+20*math.cos(sa),sy+10/2*math.cos(sa)+20*math.sin(sa)
+				local w1 = 60
+				local h = 40
+				local w2 = 30
+				local x1,y1 = sx-w1/2*math.sin(sa),sy+w1/2*math.cos(sa)
+				local x2,y2 = sx+w1/2*math.sin(sa),sy-w1/2*math.cos(sa)
+				local x3,y3 = sx+w2/2*math.sin(sa)+h*math.cos(sa),sy-w2/2*math.cos(sa)+h*math.sin(sa)
+				local x4,y4 = sx-w2/2*math.sin(sa)+h*math.cos(sa),sy+w2/2*math.cos(sa)+h*math.sin(sa)
 				local damageShape = world.collider:addPolygon(x1,y1,x2,y2,x3,y3,x4,y4)
 
 				for i,v in pairs(possibilty) do
@@ -146,9 +180,47 @@ function character.create(index,x,y)
 
 				world.collider:remove(damageShape)
 
-			elseif self.count >= attackTime then
-				self:setState("normal")
+			elseif self.count >= swordAttackTime then
+				if self.state == "swordAttackLeft" then
+					self:setState("swordRight")
+				else
+					self:setState("swordLeft")
+				end
 			end
+		elseif self.state == "rifleAttack"  then
+			world.notify(self.index)
+			if self.count == 1 then
+				local sx,sy = self:getPosition()
+				local sa = self:getAngle()
+
+				local damageHeight = 230
+				local damageWidth = 2
+				local possibilty = world.collider:shapesInRange(sx-damageHeight,sy-damageHeight,sx+damageHeight,sy+damageHeight)
+
+				local x1,y1 = sx-damageWidth/2*math.sin(sa),sy+damageWidth/2*math.cos(sa)
+				local x2,y2 = sx+damageWidth/2*math.sin(sa),sy-damageWidth/2*math.cos(sa)
+				local x3,y3 = sx+damageWidth/2*math.sin(sa)+damageHeight*math.cos(sa),sy-damageWidth/2*math.cos(sa)+damageHeight*math.sin(sa)
+				local x4,y4 = sx-damageWidth/2*math.sin(sa)+damageHeight*math.cos(sa),sy+damageWidth/2*math.cos(sa)+damageHeight*math.sin(sa)
+				local damageShape = world.collider:addPolygon(x1,y1,x2,y2,x3,y3,x4,y4)
+
+				for i,v in pairs(possibilty) do
+					if v:collidesWith(damageShape) then
+						other = v:getUserData()
+						if other.index ~= self.index and other.damage then
+							other:damage(damageAmount)
+						end
+					end
+				end
+
+				world.collider:remove(damageShape)
+
+			elseif self.count >= rifleAttackTime then
+				self:setState("rifle")
+			end
+		elseif self.state == "shiftToRifle" and self.count >= shiftWeaponTime then
+			self:setState("rifle")
+		elseif self.state == "shiftToSword" and self.count >= shiftWeaponTime then
+			self:setState("swordRight")
 		end
 		self.count = self.count + 1
 	end
@@ -157,10 +229,22 @@ function character.create(index,x,y)
 		local dx = self.velocity * dt * math.cos(self:getAngle())
 		local dy = self.velocity * dt * math.sin(self:getAngle())
 		self.shape:move(dx, dy)
-		if self.state == "attack"  then
-			if self.count >= attackTime then
-				self:setState("normal")
+		if self.state == "rifleAttack"  then
+			if self.count >= rifleAttackTime then
+				self:setState("rifle")
 			end
+		elseif self.state == "swordAttackLeft"  then
+			if self.count >= swordAttackTime then
+				self:setState("swordRight")
+			end
+		elseif self.state == "swordAttackRight"  then
+			if self.count >= swordAttackTime then
+				self:setState("swordLeft")
+			end
+		elseif self.state == "shiftToRifle" and self.count >= shiftWeaponTime then
+			self:setState("rifle")
+		elseif self.state == "shiftToSword" and self.count >= shiftWeaponTime then
+			self:setState("swordRight")
 		end
 		self.count = self.count + 1
 	end
@@ -193,6 +277,7 @@ function character.create(index,x,y)
 		t.x = x
 		t.y = y
 		t.velocity = self:getVelocity()
+		t.weaponAngle = self:getWeaponAngle()
 		t.angle = self:getAngle()
 		t.state = self:getState()
 		t.count = self.count
@@ -203,39 +288,62 @@ function character.create(index,x,y)
 
 	function h:writeAttribut()
 		local v = self:getAttribut()
-		return "type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count..",life="..v.life.."\n"
+		return "type="..v.type..",x="..v.x..",y="..v.y..",velocity="..v.velocity..",angle="..v.angle..",state="..v.state..",count="..v.count..",life="..v.life..",weaponAngle="..v.weaponAngle.."\n"
 	end
 
 	local g = anim8.newGrid(64, 64, character.image:getWidth(), character.image:getHeight())
+	local g2 = anim8.newGrid(4*64, 64, character.image:getWidth(), character.image:getHeight())
 	h.animation = {}
-	h.animation.normal = anim8.newAnimation(g("1-4",1), 0.05)
-	h.animation.attack = anim8.newAnimation(g("1-4",2),attackTime*core.rate/4000)
-	h.animation.dead = anim8.newAnimation(g(1,3), 1)
+	h.animation.swordLeft = anim8.newAnimation(g(2,1), 1)
+	h.animation.swordRight = anim8.newAnimation(g(1,1), 1)
+	h.animation.swordAttackLeft = anim8.newAnimation(g("1-4",3),swordAttackTime*core.rate/4000)
+	h.animation.swordAttackRight = anim8.newAnimation(g("1-4",2),swordAttackTime*core.rate/4000)
+	h.animation.rifle = anim8.newAnimation(g(1,4), 1)
+	h.animation.rifleAttack = anim8.newAnimation(g2(1,5,1,4), {0.002,1})
+	h.animation.dead = anim8.newAnimation(g(1,6), 1)
 	h.animation.dead:pauseAtStart()
+	h.animation.shiftToSword = anim8.newAnimation(g(3,1), 1)
+	h.animation.shiftToRifle = anim8.newAnimation(g(3,1), 1)
 
 	function h:draw()
-		if false then
-			if self.state == "normal" then
-				love.graphics.setColor(255,0,0)
-			elseif self.state == "attack" then
-				love.graphics.setColor(0,255,0)
-			elseif self.state == "dead" then
-				love.graphics.setColor(0,0,255)
-			end
+		if true then
 			local x,y = self:getPosition()
 
 			love.graphics.circle("fill",x,y,radius)
 
-			if true then --self.state == "attack" and self.count == 2 then
+			if false then
+				love.graphics.setColor(0,125,125)
+				local sx,sy = self:getPosition()
+				local sa = self:getAngle()
+
+				local damageHeight = 230
+				local damageWidth = 2
+				local possibilty = world.collider:shapesInRange(sx-damageHeight,sy-damageHeight,sx+damageHeight,sy+damageHeight)
+
+				local x1,y1 = sx-damageWidth/2*math.sin(sa),sy+damageWidth/2*math.cos(sa)
+				local x2,y2 = sx+damageWidth/2*math.sin(sa),sy-damageWidth/2*math.cos(sa)
+				local x3,y3 = sx+damageWidth/2*math.sin(sa)+damageHeight*math.cos(sa),sy-damageWidth/2*math.cos(sa)+damageHeight*math.sin(sa)
+				local x4,y4 = sx-damageWidth/2*math.sin(sa)+damageHeight*math.cos(sa),sy+damageWidth/2*math.cos(sa)+damageHeight*math.sin(sa)
+				local damageShape = world.collider:addPolygon(x1,y1,x2,y2,x3,y3,x4,y4)
+				love.graphics.polygon("fill",x1,y1,x2,y2,x3,y3,x4,y4)
+			end
+
+			if false then --self.state == "attack" and self.count == 2 then
 				love.graphics.setColor(125,125,0)
 				local sx,sy = self:getPosition()
 				local sa = self:getAngle()
-				local x1,y1 = sx-32/2*math.sin(sa),sy+32/2*math.cos(sa)
-				local x2,y2 = sx+32/2*math.sin(sa),sy-32/2*math.cos(sa)
-				local x3,y3 = sx+10/2*math.sin(sa)+20*math.cos(sa),sy-10/2*math.cos(sa)+20*math.sin(sa)
-				local x4,y4 = sx-10/2*math.sin(sa)+20*math.cos(sa),sy+10/2*math.cos(sa)+20*math.sin(sa)
+				local w1 = 60
+				local h = 40
+				local w2 = 30
+				local x1,y1 = sx-w1/2*math.sin(sa),sy+w1/2*math.cos(sa)
+				local x2,y2 = sx+w1/2*math.sin(sa),sy-w1/2*math.cos(sa)
+				local x3,y3 = sx+w2/2*math.sin(sa)+h*math.cos(sa),sy-w2/2*math.cos(sa)+h*math.sin(sa)
+				local x4,y4 = sx-w2/2*math.sin(sa)+h*math.cos(sa),sy+w2/2*math.cos(sa)+h*math.sin(sa)
 				love.graphics.polygon("fill",x1,y1,x2,y2,x3,y3,x4,y4)
+
+
 			end
+
 		end
 		if true then
 			local x,y = self:getPosition()
@@ -267,6 +375,9 @@ function character.create(index,x,y)
 		if att.life then
 			self.life = att.life
 		end
+		if att.weaponAngle then
+			self:setWeaponAngle(att.weaponAngle)
+		end
 	end
 
 	function h:encodeAttribut()
@@ -274,6 +385,7 @@ function character.create(index,x,y)
 		h:getY()..','..
 		h:getVelocity()..','..
 		h:getAngle()..","..
+		h:getWeaponAngle()..","..
 		h:getState()..","..
 		h.count..","..
 		h.life..";"
@@ -292,6 +404,12 @@ function character.create(index,x,y)
 				self:setVelocity(tonumber(values))
 			elseif func == "at" then
 				self:attack(tonumber(values))
+			elseif func == "shS" then
+				self:shiftToSword()
+			elseif func == "shR" then
+				self:shiftToRifle()
+			elseif func == "swa" then
+				self:setWeaponAngle(tonumber(values))
 			end
 			world.notify(index)
 		end
@@ -323,29 +441,54 @@ function character.interpolate(from, to, frac)
 	if to.type == "character" then
 		t.x = from.x*(1-frac) + to.x*frac 
 		t.y = from.y*(1-frac) + to.y*frac 
+		t.weaponAngle = from.weaponAngle*(1-frac) + to.weaponAngle
+		t.angle = from.angle*(1-frac) + to.angle*frac 
 
-		if from.state == "attack" then
-			if from.count + frac*4 >= attackTime then
-				t.state = "normal"
+		if from.state == "swordAttackLeft" then
+			if from.count + frac*4 >= swordAttackTime then
+				t.state = "swordRight"
 			end
 		end
-		if to.state == "attack" then
+		if to.state == "swordAttackLeft" then
 			if to.count - frac*4 > 0 then
-				t.state = "attack"
+				t.state = "swordAttackLeft"
 			end
 		end
+		if from.state == "swordAttackRight" then
+			if from.count + frac*4 >= swordAttackTime then
+				t.state = "swordLeft"
+			end
+		end
+		if to.state == "swordAttackRight" then
+			if to.count - frac*4 > 0 then
+				t.state = "swordAttackRight"
+			end
+		end
+		if from.state == "rifleAttack" then
+			if from.count + frac*4 >= swordAttackTime then
+				t.state = "rifle"
+			end
+		end
+		if to.state == "rifleAttack" then
+			if to.count - frac*4 > 0 then
+				t.state = "rifleAttack"
+			end
+		end
+
+
 	end
 	return t
 end
 
 function character.decodeAttribut(data)
 	local att = {}
-	att.x,att.y,att.velocity,att.angle,att.state,att.count,att.life = data:match(
-		"^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*);$")
+	att.x,att.y,att.velocity,att.angle,att.weaponAngle,att.state,att.count,att.life = data:match(
+		"^([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*),([^,]*);$")
 	att.x = tonumber(att.x)
 	att.y = tonumber(att.y)
 	att.velocity = tonumber(att.velocity)
 	att.angle = tonumber(att.angle)
+	att.weaponAngle = tonumber(att.weaponAngle)
 	att.count = tonumber(att.count)
 	att.type = "character"
 	att.life = tonumber(att.life)

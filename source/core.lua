@@ -2,12 +2,9 @@ core = {
 	rate = 20
 }
 
--- set the rate of the main loop
 function core.setRate(rate)
 	core.rate = rate
 end
-
--- get the rate of the main loop
 function core.getRate()
 	return core.rate
 end
@@ -15,14 +12,11 @@ end
 -- module that manage snapshot 
 core.snapshot = {}
 
-function core.snapshot.encodeSnap(lastAction,objectData)
-	return lastAction..";"..objectData
-end
-
 function core.snapshot.createSnap()
 	local snap = {
 		lastAction = 0,
-		object = {}
+		object = {},
+		pastAction = {}
 	}
 
 	function snap:getObject()
@@ -45,9 +39,9 @@ function core.snapshot.createSnap()
 	end
 
 	function snap:decode(data)
-		local lastAction,objectCode = data:match("^([^;]*);(.*)$")
-		self:setLastAction(tonumber(lastAction))
-		self:setObject(world.decodeObject(objectCode))
+		local lastAction, obj = data:match("^(.)(.*)$")
+		self:setLastAction(string.byte(lastAction))
+		self:setObject(world.decodeObject(obj))
 	end
 
 	function snap:removeIndex(index)
@@ -91,30 +85,6 @@ end
 function core.snapshot.getOld()
 	return core.snapshot[core.snapshot.new % 2 + 1]
 end
-
-core.snapshot.deltaBetweenSnapshot = 4
-do
-	local iterator = 0
-	core.snapshot.timeToSendSnapshot = function()
-		iterator = iterator - 1
-		if iterator <= 0 then
-			iterator = core.snapshot.deltaBetweenSnapshot
-			return true
-		else
-			return false
-		end
-	end
-end
--- set the delta between server state and local state
-function core.snapshot.setDelta(delta)
-	core.snapshot.delta = delta
-end
-
--- get the delta between server state and local state
-function core.snapshot.getDelta()
-	return core.snapshot.delta
-end
-
 
 core.prediction = {}
 
@@ -173,7 +143,7 @@ function core.prediction.diff()
 	for i,v in pairs(auth) do
 		if type(pred[i]) == "number" then
 			if math.abs((pred[i]-v)/v) > core.prediction.numError then
-				diff = "true"
+				diff = "TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTtrue"
 				return true
 			end
 		elseif pred[i] ~= v then
@@ -195,7 +165,7 @@ function core.interpolation.interpolate(from, to)
 		table.remove(core.interpolation,1)
 	end
 
-	local delta = core.snapshot.getDelta()
+	local delta = 4
 	for i = 1, delta do
 		core.interpolation[i] = {}
 	end
@@ -216,7 +186,7 @@ function core.interpolation.initCursor()
 end
 
 function core.interpolation.incCursor()
-	core.interpolation.cursor = math.min(core.interpolation.cursor + 1,core.snapshot.getDelta())
+	core.interpolation.cursor = math.min(core.interpolation.cursor + 1,4)
 end
 
 core.action = {}
@@ -224,7 +194,7 @@ core.action = {}
 core.action.index = 0
 
 function core.action.newIndex()
-	core.action.index = core.action.index + 1
+	core.action.index = core.action.index%255 + 1
 	core.action[#core.action + 1] = {
 		index = core.action.index,
 		code = ""
@@ -232,14 +202,14 @@ function core.action.newIndex()
 end
 
 function core.action.cutToIndex(index)
-	while core.action[1].index and core.action[1].index <= index do
+	while core.action[1].index and core.action[1].index ~= index%255+1 do
 		table.remove(core.action,1)
 	end
 end
 
 
 function core.action.send()
-	server:send("a"..core.action[#core.action].index..";"..core.action[#core.action].code)
+	server:send("a"..string.char(core.action[#core.action].index)..core.action[#core.action].code)
 end
 
 function core.action.apply(index,code)

@@ -94,3 +94,4 @@ end
 
 world.hoverfly = require "hoverfly"
 world.null = require "null"
+world.character = require "character"

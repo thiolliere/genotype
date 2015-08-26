@@ -115,5 +115,11 @@ else
 		if love.keyboard.isDown(" ") then
 			core.action.newAction("at,;")
 		end
+		if love.keyboard.isDown("s") then
+			core.action.newAction("shS,;")
+		end
+		if love.keyboard.isDown("r") then
+			core.action.newAction("shR,;")
+		end
 	end
 end
