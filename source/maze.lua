@@ -1,5 +1,7 @@
 maze = {}
 
+maze.roomMaxDim = 4
+
 function maze.generateMap()
 	local meanHoverfly = 1
 	local stddevHoverfly = 1
@@ -12,9 +14,6 @@ function maze.generateMap()
 	for i,p in ipairs(path) do
 		maze.generateRoom(p.prec,p.suiv)
 	end
-
-
-
 end
 
 function maze.generatePath()
@@ -81,7 +80,7 @@ function maze.generatePath()
 end
 
 function maze.generateRoom(prec,suiv)
-	local roomMaxDim = 6
+	local roomMaxDim = maze.roomMaxDim
 
 	local room = {}
 	room.height = love.math.random(roomMaxDim)
@@ -100,7 +99,56 @@ function maze.generateRoom(prec,suiv)
 	end
 
 	local topleft = {}
-
+	if prec == "up" then 
+		topleft.y =  1
+		if suiv = "left" then
+			topleft.x = 1
+		else
+			topleft.x = roomMaxDim-room.width
+		end
+	elseif prec == "down" then
+		topleft.y = roomMaxDim-room.height
+		if suiv = "left" then
+			topleft.x = 1
+		else
+			topleft.x = roomMaxDim-room.width
+		end
+	elseif prec == "left" then
+		topleft.x = 1
+		if suiv == "up" then
+			topleft.y = 1
+		else
+			topleft.y = roomMaxDim-room.height
+		end
+	elseif prec == "right" then
+		topleft.x = roomMaxDim-room.width
+		if suiv == "up" then
+			topleft.y = 1
+		else
+			topleft.y = roomMaxDim-room.height
+		end
+	end
+	room.topleft = topleft
 	return room
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

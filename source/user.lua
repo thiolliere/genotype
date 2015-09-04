@@ -29,7 +29,7 @@ if arg[2] and arg[2] == "bot" then
 		elseif love.timer.getTime() > timeToChange then
 			core.action.newAction("at,;")
 			local a = math.random(1,314*2)/100
-			core.action.newAction("sa,"..tostring(a)..";")
+--			core.action.newAction("sa,"..tostring(a)..";")
 			timeToChange = love.timer.getTime() + math.random(0.2,2)
 		end
 	end

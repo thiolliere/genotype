@@ -143,6 +143,11 @@ function character.create(index,x,y)
 		return self.state
 	end
 
+	h.positionStack = {}
+	for i = 1, 8 do
+		h.positionStack[i] = {x=x or 0, y = y or 0}
+	end
+
 	function h:update(dt)
 		local dx = self.velocity * dt * math.cos(self:getAngle())
 		local dy = self.velocity * dt * math.sin(self:getAngle())
@@ -150,10 +155,19 @@ function character.create(index,x,y)
 			world.notify(self.index)
 			self.shape:move(dx, dy)
 		end
+		for i = 7, 1, -1 do
+			self.positionStack[i+1] = self.positionStack[i]
+		end
+
+		self.positionStack[1] = {x=self:getX(),y=self:getY()}
+
 
 		if self.state == "swordAttackLeft" or self.state == "swordAttackRight" then
 			world.notify(self.index)
 			if self.count >= 1 and self.count < swordAttackTime*3/4 then
+				local peer = host:get_peer(self.index)
+				world.moveInThePast(peer:round_trip_time(),self.index)
+
 				local sx,sy = self:getPosition()
 				local sa = self:getAngle()
 
@@ -179,6 +193,7 @@ function character.create(index,x,y)
 				end
 
 				world.collider:remove(damageShape)
+				world.moveInThePresent()
 
 			elseif self.count >= swordAttackTime then
 				if self.state == "swordAttackLeft" then
@@ -190,6 +205,9 @@ function character.create(index,x,y)
 		elseif self.state == "rifleAttack"  then
 			world.notify(self.index)
 			if self.count == 1 then
+				local peer = host:get_peer(self.index)
+				world.moveInThePast(peer:round_trip_time(),self.index)
+
 				local sx,sy = self:getPosition()
 				local sa = self:getAngle()
 
@@ -213,6 +231,7 @@ function character.create(index,x,y)
 				end
 
 				world.collider:remove(damageShape)
+				world.moveInThePresent()
 
 			elseif self.count >= rifleAttackTime then
 				self:setState("rifle")
@@ -222,6 +241,8 @@ function character.create(index,x,y)
 		elseif self.state == "shiftToSword" and self.count >= shiftWeaponTime then
 			self:setState("swordRight")
 		end
+
+
 		self.count = self.count + 1
 	end
 

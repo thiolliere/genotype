@@ -84,7 +84,7 @@ function love.run()
 				elseif event.type == "connect" then
 
 					local index = event.peer:index()
-					world.character.create(index)
+					world.character.create(index,love.math.random(800),love.math.random(600))
 					server.clientLastAction[index] = 1
 					local saveNotify = {}
 					for i,v in pairs(world.notified) do

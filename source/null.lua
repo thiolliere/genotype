@@ -35,6 +35,7 @@ function null.create(index)
 		return "type=null"
 	end
 
+	world.object[index] = h
 	return h
 end
 

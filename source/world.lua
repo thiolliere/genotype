@@ -19,6 +19,27 @@ end
 
 world.collider = world.HC.new(100, world.onCollision, world.collisionStop)
 
+function world.moveInThePast(ping,notIndex)
+	local dt = ping/2 + 4*0.02
+	local rate = core.rate/1000	
+	local dn = math.min(math.ceil(dt/rate)+1,8)
+	for i,v in ipairs(world.object) do
+		if v.setPosition and i~= notIndex then
+			local p = v.positionStack[dn]
+			v:setPosition(p.x,p.y)
+		end
+	end
+end
+
+function world.moveInThePresent()
+	for i,v in ipairs(world.object) do
+		if v.setPosition then
+			local p = v.positionStack[1]
+			v:setPosition(p.x,p.y)
+		end
+	end
+end
+
 -- callable by server only
 function world.getNewIndex()
 	local p = host:peer_count()

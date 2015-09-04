@@ -93,11 +93,13 @@ function love.run()
 		-- update world
 		love.update()
 
-		if love.window and love.graphics and love.window.isCreated() then
-			love.graphics.clear()
-			love.graphics.origin()
-			if love.draw and not bot then love.draw() end
-			love.graphics.present()
+		if not bot then
+			if love.window and love.graphics and love.window.isCreated() then
+				love.graphics.clear()
+				love.graphics.origin()
+				if love.draw then love.draw() end
+				love.graphics.present()
+			end
 		end
 
 		-- static rate
@@ -139,8 +141,10 @@ function love.run()
 			msg = msg.."world : \n"
 			local l = 0
 			for i,v in pairs(world.object) do
-				l = l+1
-				msg=msg.."peer : index "..i..v:writeAttribut().."\n"
+				if i == core.prediction.index then
+					l = l+1
+					msg=msg.."peer : index "..i..v:writeAttribut().."\n"
+				end
 			end
 			completeLine(4-l)
 

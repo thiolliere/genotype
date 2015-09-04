@@ -24,6 +24,11 @@ function hoverfly.create(index,x,y)
 	h.life = 1
 	h.shape = world.collider:addCircle(x or 0, y or 0, radius)
 
+	h.positionStack = {}
+	for i = 1, 8 do
+		h.positionStack[i] = {x=x or 0, y = y or 0}
+	end
+
 	function h.shape:getUserData()
 		return h
 	end
@@ -112,16 +117,26 @@ function hoverfly.create(index,x,y)
 	end
 
 	function h:update(dt)
+
 		local dx = self.velocity * dt * math.cos(self:getAngle())
 		local dy = self.velocity * dt * math.sin(self:getAngle())
 		if dx ~= 0 or dy ~= 0 then
 			world.notify(self.index)
 			self.shape:move(dx, dy)
 		end
+		for i = 7, 1, -1 do
+			self.positionStack[i+1] = self.positionStack[i]
+		end
+
+		self.positionStack[1] = {x=self:getX(),y=self:getY()}
+
+
 
 		if self.state == "attack"  then
 			world.notify(self.index)
 			if self.count == 1 then
+				local peer = host:get_peer(self.index)
+				world.moveInThePast(peer:round_trip_time(),self.index)
 				local sx,sy = self:getPosition()
 				local sa = self:getAngle()
 
@@ -141,11 +156,14 @@ function hoverfly.create(index,x,y)
 				end
 
 				world.collider:remove(damageShape)
+				world.moveInThePresent()
 
 			elseif self.count >= attackTime then
 				self:setState("normal")
 			end
 		end
+
+
 		self.count = self.count + 1
 	end
 
@@ -179,6 +197,7 @@ function hoverfly.create(index,x,y)
 	function h:destroy()
 		world.collider:remove(self.shape)
 		world.object[self.index] = nil
+		null.create(self.index)
 	end
 
 	function h:getAttribut()
